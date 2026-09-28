@@ -22,12 +22,12 @@ export function buildHomePanel (parent: Node): Node {
     const pw = nd('powerBar', 580, 62, root);
     pw.setPosition(0, 462);
     box(pw, 12, C.panel, C.goldDim, 2);
-    txt(pw, '阵容战力', FS.small, C.textSub, 140, 44, -215, 0);
+    txt(pw, TXT.lineup.power, FS.small, C.textSub, 140, 44, -215, 0);
     txt(pw, String(Store.totalPower()), FS.h1, C.gold, 240, 44, -40, 0);
     const pwBtn = nd('pwBtn', 130, 44, pw);
     pwBtn.setPosition(205, 0);
     box(pwBtn, 10, C.btn, C.gold, 2);
-    txt(pwBtn, '调整阵容', FS.small, C.textDark, 130, 44);
+    txt(pwBtn, TXT.home.adjust, FS.small, C.textDark, 130, 44);
     pwBtn.on(Node.EventType.TOUCH_END, () => Router.go('lineup'));
 
     // 上阵武将（3×2）
@@ -49,7 +49,7 @@ export function buildHomePanel (parent: Node): Node {
             boxAddLine(s, -34, -34, 68, 68, 8, C.panelLine, 3);
             lineAdd(s, -18, 0, 18, 0, C.panelLine, 4);
             lineAdd(s, 0, -18, 0, 18, C.panelLine, 4);
-            txt(s, '空位', 16, C.textWeak, 100, 24, 0, 0);
+            txt(s, TXT.common.emptySlot, 16, C.textWeak, 100, 24, 0, 0);
         }
     }
 
@@ -85,12 +85,12 @@ export function buildHomePanel (parent: Node): Node {
     const goal = nd('goal', 580, 96, root);
     goal.setPosition(0, -270);
     box(goal, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
-    txt(goal, '今日目标', FS.small, C.gold, 200, 34, -222, 24);
-    txt(goal, '推图 3 次 · 招募 1 次 · 强化武将 1 次', FS.small, C.textSub, 520, 34, 20, -10);
+    txt(goal, TXT.home.todayGoal, FS.small, C.gold, 200, 34, -222, 24);
+    txt(goal, TXT.home.goalBody, FS.small, C.textSub, 520, 34, 20, -10);
     boxAdd(goal, -276, -26, 552, 6, 3, new Color(60, 46, 33));
     boxAdd(goal, -276, -26, 184, 6, 3, C.green);
 
-    txt(root, '提示：怒气满时点击武将头像，可手动释放必杀技', FS.small, C.textWeak, 580, 36, 0, -420);
+    txt(root, TXT.home.hint, FS.small, C.textWeak, 580, 36, 0, -420);
 
     bottomNav(root, 'home', (k: NavKey) => {
         if (k === 'home') return;

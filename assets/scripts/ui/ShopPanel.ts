@@ -7,6 +7,7 @@ import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, NavKey } from './Common';
 import { ITEM_CONF } from '../data/ItemConf';
+import { TXT } from '../data/TextConf';
 
 const SLOTS = 6;
 const REFRESH_COST = 50;
@@ -30,13 +31,13 @@ export function buildShopPanel (parent: Node): Node {
     root.setPosition(0, 0);
     fullBg(root, C.bg);
     const res = resBar(root);
-    topBar(root, '商城', () => Router.reset('home'));
+    topBar(root, TXT.shop.title, () => Router.reset('home'));
 
     let shelf = makeShelf();
     const layer = nd('layer', 700, 520, root);
     layer.setPosition(0, 0);
 
-    txt(root, '货架每日限量，售罄可花费将玉刷新', FS.tiny, C.textWeak, 580, 30, 0, 462);
+    txt(root, TXT.shop.shelfTip, FS.tiny, C.textWeak, 580, 30, 0, 462);
 
     const rebuild = () => {
         layer.destroyAllChildren();
@@ -51,16 +52,16 @@ export function buildShopPanel (parent: Node): Node {
             box(card, 12, C.panel, qualityColor(it.quality), 2);
             boxAdd(card, -80, 8, 160, 54, 8, qualityColor(it.quality));
             txt(card, it.name, 17, C.text, 200, 28, 0, 34);
-            txt(card, `${s.currency === 'jade' ? '将玉' : '银币'} ${s.price}`, FS.small, s.currency === 'jade' ? C.q3 : C.gold, 200, 28, 0, -18);
+            txt(card, `${s.currency === 'jade' ? TXT.home.jade : TXT.home.silver} ${s.price}`, FS.small, s.currency === 'jade' ? C.q3 : C.gold, 200, 28, 0, -18);
             txt(card, `库存 ${s.stock}/${s.max}`, 15, s.stock > 0 ? C.textSub : C.textWeak, 200, 24, 0, -50);
             if (s.stock <= 0) {
                 boxAdd(card, -80, -60, 160, 130, 12, new Color(0, 0, 0, 150));
-                txt(card, '已售罄', FS.small, C.textWeak, 200, 30, 0, 0);
+                txt(card, TXT.shop.soldOut, FS.small, C.textWeak, 200, 30, 0, 0);
             }
             card.on(Node.EventType.TOUCH_END, () => {
-                if (s.stock <= 0) { Fx.toast('该商品已售罄，请刷新货架'); return; }
-                if (s.currency === 'silver' && Store.data.silver < s.price) { Fx.toast('银币不足'); return; }
-                if (s.currency === 'jade' && Store.data.jade < s.price) { Fx.toast('将玉不足'); return; }
+                if (s.stock <= 0) { Fx.toast(TXT.shop.soldOutTip); return; }
+                if (s.currency === 'silver' && Store.data.silver < s.price) { Fx.toast(TXT.toast.noSilver); return; }
+                if (s.currency === 'jade' && Store.data.jade < s.price) { Fx.toast(TXT.toast.noJade); return; }
                 if (s.currency === 'silver') Store.addSilver(-s.price); else Store.addJade(-s.price);
                 Store.addItem(s.itemId, 1);
                 s.stock -= 1;
@@ -78,20 +79,20 @@ export function buildShopPanel (parent: Node): Node {
     box(rf, 12, C.btnGhost, C.goldDim, 2);
     txt(rf, `刷新货架（将玉 ${REFRESH_COST}）`, FS.small, C.textSub, 300, 40);
     rf.on(Node.EventType.TOUCH_END, () => {
-        if (Store.data.jade < REFRESH_COST) { Fx.toast('将玉不足'); return; }
+        if (Store.data.jade < REFRESH_COST) { Fx.toast(TXT.toast.noJade); return; }
         Store.addJade(-REFRESH_COST);
         shelf = makeShelf();
         Store.save();
         res.refresh();
         rebuild();
-        Fx.toast('货架已刷新');
+        Fx.toast(TXT.toast.refreshOk);
     });
 
     const tip = nd('tip', 580, 120, root);
     tip.setPosition(0, -200);
     box(tip, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
-    txt(tip, '无付费墙说明', FS.small, C.gold, 200, 30, -222, 34);
-    txt(tip, '本作不设充值入口，将玉仅由推图、日常与排名产出；商城货架限量并周期刷新，避免资源通胀。',
+    txt(tip, TXT.shop.noPayTitle, FS.small, C.gold, 200, 30, -222, 34);
+    txt(tip, TXT.shop.noPayBody,
         FS.tiny, C.textSub, 620, 56, 0, -14);
 
     bottomNav(root, 'home', (k: NavKey) => Router.reset(k));

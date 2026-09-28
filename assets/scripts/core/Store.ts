@@ -6,6 +6,7 @@ import { sys } from 'cc';
 import { HERO_CONF, HERO_MAP, getHeroConf, Quality } from '../data/HeroConf';
 import { ITEM_CONF, getItemConf, EquipSlot } from '../data/ItemConf';
 import { BOND_CONF } from '../data/BondConf';
+import { TXT } from '../data/TextConf';
 
 const SAVE_KEY = 'xxl_save_v1';
 
@@ -297,14 +298,14 @@ class StoreClass {
     /** 进阶：消耗进阶丹 + 银币 */
     canAdvance (confId: number): { ok: boolean; reason: string } {
         const s = this.data.heroes[confId];
-        if (!s) return { ok: false, reason: '未拥有该武将' };
-        if (s.adv >= 10) return { ok: false, reason: '已达最高进阶' };
+        if (!s) return { ok: false, reason: TXT.store.noHero };
+        if (s.adv >= 10) return { ok: false, reason: TXT.store.advMax };
         const c = getHeroConf(confId);
         if (s.level < 10 + s.adv * 5) return { ok: false, reason: `需武将等级 ${10 + s.adv * 5}` };
         const dan = ITEM_CONF.find((i) => i.name.indexOf('进阶丹') >= 0);
-        if (dan && this.itemCount(dan.id) < 1) return { ok: false, reason: '进阶丹不足' };
+        if (dan && this.itemCount(dan.id) < 1) return { ok: false, reason: TXT.store.noAdvDan };
         const need = 2000 + s.adv * 1500;
-        if (this.data.silver < need) return { ok: false, reason: '银币不足' };
+        if (this.data.silver < need) return { ok: false, reason: TXT.toast.noSilver };
         return { ok: true, reason: '' };
     }
 
@@ -331,8 +332,8 @@ class StoreClass {
 
     canStarUp (confId: number): { ok: boolean; reason: string } {
         const s = this.data.heroes[confId];
-        if (!s) return { ok: false, reason: '未拥有该武将' };
-        if (s.star >= 5) return { ok: false, reason: '已满星' };
+        if (!s) return { ok: false, reason: TXT.store.noHero };
+        if (s.star >= 5) return { ok: false, reason: TXT.store.starMax };
         const fid = this.fragmentIdOf(confId);
         const need = this.starUpNeed(s.star);
         if (!fid || this.itemCount(fid) < need) return { ok: false, reason: `碎片不足（需 ${need}）` };

@@ -7,6 +7,7 @@ import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, NavKey } from './Common';
 import { CHAPTER_CONF, STAGE_CONF, StageConf } from '../data/StageConf';
+import { TXT } from '../data/TextConf';
 
 const STAMINA_COST = 6;
 
@@ -15,7 +16,7 @@ export function buildStagePanel (parent: Node, param?: any): Node {
     root.setPosition(0, 0);
     fullBg(root, C.bg);
     const res = resBar(root);
-    topBar(root, '出征', () => Router.back());
+    topBar(root, TXT.stage.title, () => Router.back());
 
     let curChapter = param && param.chapter ? param.chapter : CHAPTER_CONF[0].id;
 
@@ -71,15 +72,15 @@ export function buildStagePanel (parent: Node, param?: any): Node {
             }
             txt(card, `战力 ${estimatePower(s)}`, FS.tiny, C.textSub, 130, 26, 20, -20);
             txt(card, `体力 ${STAMINA_COST}`, FS.tiny, C.cyan, 130, 26, 92, -20);
-            if (!unlocked) txt(card, '未解锁', FS.small, C.textWeak, 280, 30, 0, 0);
+            if (!unlocked) txt(card, TXT.stage.locked, FS.small, C.textWeak, 280, 30, 0, 0);
 
             card.on(Node.EventType.TOUCH_END, () => guardEnter(() => {
-                if (!unlocked) { Fx.toast('请先通关上一关'); return; }
-                if (Store.data.stamina < STAMINA_COST) { Fx.toast('体力不足，可去商城购买体力丹'); return; }
+                if (!unlocked) { Fx.toast(TXT.toast.stageLocked); return; }
+                if (Store.data.stamina < STAMINA_COST) { Fx.toast(TXT.toast.noStaminaBuy); return; }
                 if (stars >= 3) {
                     Fx.confirm(`${s.name}\n三星关卡可扫荡，消耗 ${STAMINA_COST} 体力直接领奖`, () => {
                         doSweep(s, () => { res.refresh(); refreshTip(); });
-                    }, '扫荡', '再想想');
+                    }, TXT.battle.sweep, TXT.stage.think);
                     return;
                 }
                 Router.go('battle', { stageId: s.id });
@@ -100,24 +101,24 @@ export function buildStagePanel (parent: Node, param?: any): Node {
     const refreshTip = () => {
         const id = Store.data.maxStageId;
         const s = STAGE_CONF.find((x) => x.id === id);
-        tip.string = s ? `最新进度：${s.name}（${Store.data.stageStars[id] || 0} 星）` : '尚未出征，先打第一关吧';
+        tip.string = s ? `最新进度：${s.name}（${Store.data.stageStars[id] || 0} 星）` : TXT.stage.notStarted;
     };
 
     // 剧情回顾
     const story = nd('story', 580, 110, root);
     story.setPosition(0, -320);
     box(story, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
-    txt(story, '战报', FS.small, C.gold, 160, 30, -240, 32);
-    const storyTxt = txt(story, '选择关卡出征，胜利后可获得经验、银币与武将碎片', FS.tiny, C.textSub, 620, 56, 0, -14);
+    txt(story, TXT.stage.report, FS.small, C.gold, 160, 30, -240, 32);
+    const storyTxt = txt(story, TXT.stage.tip, FS.tiny, C.textSub, 620, 56, 0, -14);
 
     // 一键扫荡本章
     const sweepAll = nd('sweepAll', 240, 64, root);
     sweepAll.setPosition(0, -430);
     box(sweepAll, 12, C.btn, C.gold, 2);
-    txt(sweepAll, '一键扫荡本章', FS.h2, C.textDark, 240, 44);
+    txt(sweepAll, TXT.stage.sweepChapter, FS.h2, C.textDark, 240, 44);
     sweepAll.on(Node.EventType.TOUCH_END, () => {
         const stages = STAGE_CONF.filter((s) => s.chapter === curChapter && (Store.data.stageStars[s.id] || 0) >= 3);
-        if (!stages.length) { Fx.toast('本章暂无三星关卡可扫荡'); return; }
+        if (!stages.length) { Fx.toast(TXT.toast.sweepNone); return; }
         let n = 0;
         let silver = 0; let exp = 0;
         for (const s of stages) {

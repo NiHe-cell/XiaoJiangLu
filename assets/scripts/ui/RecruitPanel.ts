@@ -8,6 +8,7 @@ import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, heroCard, NavKey, hexColor } from './Common';
 import { HERO_CONF, getHeroConf } from '../data/HeroConf';
 import { ITEM_CONF } from '../data/ItemConf';
+import { TXT } from '../data/TextConf';
 
 const COST_ONE = 100;
 const COST_TEN = 900;
@@ -31,7 +32,7 @@ export function buildRecruitPanel (parent: Node): Node {
     root.setPosition(0, 0);
     fullBg(root, C.bg);
     const res = resBar(root);
-    topBar(root, '招募', () => Router.reset('home'));
+    topBar(root, TXT.recruit.title, () => Router.reset('home'));
 
     // 招贤台
     const stage = nd('stage', 580, 380, root);
@@ -41,8 +42,8 @@ export function buildRecruitPanel (parent: Node): Node {
     g.fillColor = new Color(60, 44, 30);
     g.moveTo(-220, -170); g.lineTo(-90, -60); g.lineTo(90, -60); g.lineTo(220, -170);
     g.lineTo(220, -190); g.lineTo(-220, -190); g.close(); g.fill();
-    txt(stage, '招 贤 台', FS.title, C.gold, 400, 50, 0, 100);
-    txt(stage, '天下英雄，尽入麾下', FS.small, C.textSub, 500, 34, 0, 44);
+    txt(stage, TXT.recruit.stage, FS.title, C.gold, 400, 50, 0, 100);
+    txt(stage, TXT.recruit.slogan, FS.small, C.textSub, 500, 34, 0, 44);
     // 品质概率条
     const probs: { q: number; p: string }[] = [
         { q: 4, p: '红 4%' }, { q: 3, p: '橙 12%' }, { q: 2, p: '紫 28%' }, { q: 1, p: '蓝 56%' },
@@ -55,17 +56,17 @@ export function buildRecruitPanel (parent: Node): Node {
         box(b, 10, qualityColor(p.q), C.textDark, 2);
         txt(b, p.p, FS.small, C.textDark, 130, 40);
     });
-    txt(stage, '十连必出紫色及以上武将', FS.small, C.green, 560, 34, 0, -110);
+    txt(stage, TXT.recruit.tenTip, FS.small, C.green, 560, 34, 0, -110);
     txt(stage, `将玉余额 ${Store.data.jade}`, FS.small, C.q3, 560, 34, 0, -150);
 
     // 按钮
     const one = nd('one', 320, 96, root);
     one.setPosition(0, 20);
     box(one, 16, C.btn, C.gold, 3);
-    txt(one, '招募一次', FS.h1, C.textDark, 320, 40, 0, 12);
+    txt(one, TXT.recruit.onceLong, FS.h1, C.textDark, 320, 40, 0, 12);
     txt(one, `消耗将玉 ${COST_ONE}`, FS.small, new Color(255, 230, 190), 320, 32, 0, -22);
     one.on(Node.EventType.TOUCH_END, () => {
-        if (Store.data.jade < COST_ONE) { Fx.toast('将玉不足，可通过推图与日常获取'); return; }
+        if (Store.data.jade < COST_ONE) { Fx.toast(TXT.toast.noJadeHint); return; }
         Store.addJade(-COST_ONE);
         Store.data.recruited += 1;
         const ids = [rollHero()];
@@ -78,10 +79,10 @@ export function buildRecruitPanel (parent: Node): Node {
     const ten = nd('ten', 320, 96, root);
     ten.setPosition(0, -96);
     box(ten, 16, C.btnPrimary, C.gold, 3);
-    txt(ten, '招募十次', FS.h1, C.text, 320, 40, 0, 12);
+    txt(ten, TXT.recruit.tenLong, FS.h1, C.text, 320, 40, 0, 12);
     txt(ten, `消耗将玉 ${COST_TEN}（省 100）`, FS.small, new Color(255, 230, 190), 320, 32, 0, -22);
     ten.on(Node.EventType.TOUCH_END, () => {
-        if (Store.data.jade < COST_TEN) { Fx.toast('将玉不足，可通过推图与日常获取'); return; }
+        if (Store.data.jade < COST_TEN) { Fx.toast(TXT.toast.noJadeHint); return; }
         Store.addJade(-COST_TEN);
         Store.data.recruited += 10;
         const ids: number[] = [];
@@ -97,13 +98,13 @@ export function buildRecruitPanel (parent: Node): Node {
         showResult(root, ids, got, res.refresh);
     });
 
-    txt(root, '本作无付费入口，将玉全部通过推图、日常与排名产出', FS.tiny, C.textWeak, 580, 32, 0, -200);
+    txt(root, TXT.recruit.noPay, FS.tiny, C.textWeak, 580, 32, 0, -200);
 
     const pity = nd('pity', 580, 90, root);
     pity.setPosition(0, -320);
     box(pity, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     txt(pity, `累计招募 ${Store.data.recruited} 次`, FS.small, C.textSub, 400, 34, -110, 18);
-    txt(pity, '重复武将自动转化为对应碎片，用于升星', FS.tiny, C.textWeak, 620, 30, 0, -20);
+    txt(pity, TXT.recruit.repeatLong, FS.tiny, C.textWeak, 620, 30, 0, -20);
 
     bottomNav(root, 'recruit', (k: NavKey) => Router.reset(k));
     return root;
@@ -132,7 +133,7 @@ function showResult (root: Node, ids: number[], got: string[], refresh: () => vo
     const p = nd('result', 580, 720, m);
     p.setPosition(0, 60);
     box(p, 18, C.panel, C.gold, 3);
-    txt(p, '招募结果', FS.title, C.gold, 400, 44, 0, 310);
+    txt(p, TXT.recruit.result, FS.title, C.gold, 400, 44, 0, 310);
 
     const xs = [-240, -120, 0, 120, 240];
     ids.forEach((id, i) => {
@@ -145,6 +146,6 @@ function showResult (root: Node, ids: number[], got: string[], refresh: () => vo
     const b = nd('ok', 260, 76, p);
     b.setPosition(0, -290);
     box(b, 14, C.btn, C.gold, 2);
-    txt(b, '知道了', FS.h2, C.text, 260, 44);
+    txt(b, TXT.common.gotIt, FS.h2, C.text, 260, 44);
     b.on(Node.EventType.TOUCH_END, () => { m.destroy(); refresh(); });
 }

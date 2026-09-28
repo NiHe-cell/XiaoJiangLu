@@ -10,6 +10,7 @@ import { getHeroConf, HERO_CONF } from '../data/HeroConf';
 import { getSkillConf } from '../data/SkillConf';
 import { BOND_CONF } from '../data/BondConf';
 import { ITEM_CONF, EquipSlot } from '../data/ItemConf';
+import { TXT } from '../data/TextConf';
 
 const PER_PAGE = 20;
 
@@ -23,7 +24,7 @@ function buildList (parent: Node): Node {
     const root = nd('HeroList', 720, 1280, parent);
     root.setPosition(0, 0);
     fullBg(root, C.bg);
-    topBar(root, '武将', () => Router.reset('home'));
+    topBar(root, TXT.hero.title, () => Router.reset('home'));
     resBar(root);
 
     let page = 0;
@@ -51,21 +52,21 @@ function buildList (parent: Node): Node {
             });
             if (Store.inLineup(h.confId)) {
                 boxAdd(layer, x - 48, y + 63 - 22, 96, 22, 6, C.green);
-                txt(layer, '上阵中', 15, C.textDark, 96, 22, x, y + 63 - 11);
+                txt(layer, TXT.common.inLineup, 15, C.textDark, 96, 22, x, y + 63 - 11);
             }
         });
-        if (!list.length) txt(layer, '还没有武将，去招募吧', FS.body, C.textWeak, 580, 60, 0, 0);
+        if (!list.length) txt(layer, TXT.empty.hero, FS.body, C.textWeak, 580, 60, 0, 0);
 
         if (total > 1) {
             const pv = nd('prev', 130, 52, layer);
             pv.setPosition(-190, -300);
             box(pv, 10, C.btnGhost, C.panelLine, 2);
-            txt(pv, '上一页', FS.small, C.textSub, 130, 40);
+            txt(pv, TXT.common.pagePrev, FS.small, C.textSub, 130, 40);
             pv.on(Node.EventType.TOUCH_END, () => { page--; rebuild(); });
             const nx = nd('next', 130, 52, layer);
             nx.setPosition(190, -300);
             box(nx, 10, C.btnGhost, C.panelLine, 2);
-            txt(nx, '下一页', FS.small, C.textSub, 130, 40);
+            txt(nx, TXT.common.pageNext, FS.small, C.textSub, 130, 40);
             nx.on(Node.EventType.TOUCH_END, () => { page++; rebuild(); });
             txt(layer, `${page + 1}/${total}`, FS.small, C.textSub, 160, 40, 0, -300);
         }
@@ -107,11 +108,11 @@ function buildDetail (parent: Node, confId: number): Node {
     attr.setPosition(0, 200);
     box(attr, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     const rows: { k: string; get: () => number }[] = [
-        { k: '生命', get: () => Store.attrOf(confId).hp },
-        { k: '攻击', get: () => Store.attrOf(confId).atk },
-        { k: '物防', get: () => Store.attrOf(confId).pdef },
-        { k: '法防', get: () => Store.attrOf(confId).mdef },
-        { k: '速度', get: () => Store.attrOf(confId).speed },
+        { k: TXT.hero.hp, get: () => Store.attrOf(confId).hp },
+        { k: TXT.hero.atk, get: () => Store.attrOf(confId).atk },
+        { k: TXT.hero.pdef, get: () => Store.attrOf(confId).pdef },
+        { k: TXT.hero.mdef, get: () => Store.attrOf(confId).mdef },
+        { k: TXT.hero.speed, get: () => Store.attrOf(confId).speed },
     ];
     const valLabels: any[] = [];
     rows.forEach((r, i) => {
@@ -128,12 +129,12 @@ function buildDetail (parent: Node, confId: number): Node {
     const expItem = ITEM_CONF.find((i) => i.type === 'exp');
     const acts: { t: string; sub: string; fn: () => void }[] = [
         {
-            t: '升级', sub: expItem ? `消耗 ${expItem.name}` : '消耗经验丹',
+            t: TXT.hero.upgrade, sub: expItem ? TXT.hero.costItem.replace('{n}', expItem.name) : TXT.hero.costDefault,
             fn: () => {
-                if (!expItem) { Fx.toast('暂无经验道具'); return; }
-                if (Store.itemCount(expItem.id) <= 0) { Fx.toast('经验道具不足'); return; }
+                if (!expItem) { Fx.toast(TXT.toast.noExpItem); return; }
+                if (Store.itemCount(expItem.id) <= 0) { Fx.toast(TXT.toast.expNotEnough); return; }
                 if (!st) return;
-                if (st.level >= Store.data.level) { Fx.toast('不可超过主公等级'); return; }
+                if (st.level >= Store.data.level) { Fx.toast(TXT.toast.lvCap); return; }
                 Store.addItem(expItem.id, -1);
                 const lv = Store.levelUp(confId, expItem.expValue || 100);
                 Store.save();
@@ -142,7 +143,7 @@ function buildDetail (parent: Node, confId: number): Node {
             },
         },
         {
-            t: '进阶', sub: '进阶丹+银币',
+            t: TXT.hero.advance, sub: TXT.hero.advCost,
             fn: () => {
                 const r = Store.canAdvance(confId);
                 if (!r.ok) { Fx.toast(r.reason); return; }
@@ -153,7 +154,7 @@ function buildDetail (parent: Node, confId: number): Node {
             },
         },
         {
-            t: '升星', sub: '消耗武将碎片',
+            t: TXT.hero.starUp, sub: TXT.hero.starCost,
             fn: () => {
                 const r = Store.canStarUp(confId);
                 if (!r.ok) { Fx.toast(r.reason); return; }
@@ -164,7 +165,7 @@ function buildDetail (parent: Node, confId: number): Node {
             },
         },
         {
-            t: '一键装备', sub: '自动穿最优',
+            t: TXT.hero.equipAll, sub: TXT.hero.equipAllSub,
             fn: () => {
                 if (!st) return;
                 const slots: EquipSlot[] = ['weapon', 'armor', 'helmet', 'necklace', 'treasure'];
@@ -175,7 +176,7 @@ function buildDetail (parent: Node, confId: number): Node {
                     if (best) { Store.equip(confId, sl, best.id); n++; }
                 }
                 Store.save();
-                Fx.toast(n ? `已装备 ${n} 件` : '背包中暂无可用装备');
+                Fx.toast(n ? TXT.toast.equippedCount.replace('{n}', String(n)) : TXT.toast.noEquip);
                 refresh();
             },
         },
@@ -195,10 +196,10 @@ function buildDetail (parent: Node, confId: number): Node {
     sk.setPosition(0, -160);
     box(sk, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     const rage = getSkillConf(c.skillId);
-    txt(sk, '怒气技', FS.small, C.gold, 160, 28, -240, 50);
+    txt(sk, TXT.hero.skillTitle, FS.small, C.gold, 160, 28, -240, 50);
     txt(sk, rage ? `${rage.name}：${rage.desc}` : '—', FS.small, C.text, 500, 34, 60, 50);
     const tal = getSkillConf(c.talentId);
-    txt(sk, '天赋', FS.small, C.gold, 160, 28, -240, 6);
+    txt(sk, TXT.hero.talent, FS.small, C.gold, 160, 28, -240, 6);
     txt(sk, tal ? `${tal.name}：${tal.desc}（进阶+6 解锁）` : '—', FS.small, C.textSub, 500, 34, 60, 6);
     txt(sk, c.desc, FS.tiny, C.textWeak, 620, 40, 0, -42);
 
@@ -206,14 +207,14 @@ function buildDetail (parent: Node, confId: number): Node {
     const bd = nd('bond', 580, 150, root);
     bd.setPosition(0, -340);
     box(bd, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
-    txt(bd, '相关羁绊', FS.small, C.gold, 200, 28, -222, 50);
+    txt(bd, TXT.hero.relations, FS.small, C.gold, 200, 28, -222, 50);
     const mine = BOND_CONF.filter((b) => b.heroIds.indexOf(confId) >= 0);
-    if (!mine.length) txt(bd, '暂无关联羁绊', FS.tiny, C.textWeak, 620, 30, 0, 10);
+    if (!mine.length) txt(bd, TXT.hero.noRelation, FS.tiny, C.textWeak, 620, 30, 0, 10);
     mine.forEach((b, i) => {
         const on = Store.activeBonds().indexOf(b) >= 0;
         const names = b.heroIds.map((h) => getHeroConf(h).name).join('+');
         txt(bd, `${b.name}（${names}）`, FS.tiny, on ? C.green : C.textSub, 380, 28, -110, 20 - i * 30);
-        txt(bd, on ? '已激活' : '未激活', FS.tiny, on ? C.green : C.textWeak, 120, 28, 250, 20 - i * 30);
+        txt(bd, on ? TXT.lineup.bondActive : TXT.lineup.bondOff, FS.tiny, on ? C.green : C.textWeak, 120, 28, 250, 20 - i * 30);
     });
 
     const refresh = () => {

@@ -8,13 +8,14 @@ import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, heroCard, NavKey } from './Common';
 import { ITEM_CONF, getItemConf } from '../data/ItemConf';
 import { getHeroConf } from '../data/HeroConf';
+import { TXT } from '../data/TextConf';
 
 export function buildBagPanel (parent: Node): Node {
     const root = nd('Bag', 720, 1280, parent);
     root.setPosition(0, 0);
     fullBg(root, C.bg);
     const res = resBar(root);
-    topBar(root, '背包', () => Router.reset('home'));
+    topBar(root, TXT.bag.title, () => Router.reset('home'));
 
     let page = 0;
     const layer = nd('layer', 700, 700, root);
@@ -40,18 +41,18 @@ export function buildBagPanel (parent: Node): Node {
             txt(card, `×${Store.itemCount(it.id)}`, 15, C.gold, 92, 24, 0, -36);
             card.on(Node.EventType.TOUCH_END, () => showItem(root, it.id, () => { rebuild(); res.refresh(); }));
         });
-        if (!list.length) txt(layer, '背包空空如也，去推图或商城看看吧', FS.body, C.textWeak, 580, 60, 0, 200);
+        if (!list.length) txt(layer, TXT.empty.bag, FS.body, C.textWeak, 580, 60, 0, 200);
 
         if (total > 1) {
             const pv = nd('prev', 130, 52, layer);
             pv.setPosition(-190, -300);
             box(pv, 10, C.btnGhost, C.panelLine, 2);
-            txt(pv, '上一页', FS.small, C.textSub, 130, 40);
+            txt(pv, TXT.common.pagePrev, FS.small, C.textSub, 130, 40);
             pv.on(Node.EventType.TOUCH_END, () => { page--; rebuild(); });
             const nx = nd('next', 130, 52, layer);
             nx.setPosition(190, -300);
             box(nx, 10, C.btnGhost, C.panelLine, 2);
-            txt(nx, '下一页', FS.small, C.textSub, 130, 40);
+            txt(nx, TXT.common.pageNext, FS.small, C.textSub, 130, 40);
             nx.on(Node.EventType.TOUCH_END, () => { page++; rebuild(); });
             txt(layer, `${page + 1}/${total}`, FS.small, C.textSub, 160, 40, 0, -300);
         }
@@ -74,7 +75,7 @@ function showItem (root: Node, itemId: number, onChange: () => void): void {
     txt(panel, `拥有 ${Store.itemCount(itemId)}`, FS.small, C.gold, 520, 34, 0, 56);
 
     if (it.type === 'exp') {
-        txt(panel, '选择要培养的武将', FS.small, C.textSub, 520, 30, 0, 10);
+        txt(panel, TXT.bag.chooseHero, FS.small, C.textSub, 520, 30, 0, 10);
         const line = Store.data.lineup;
         line.forEach((id, i) => {
             const c = nd('pick' + i, 92, 116, panel);
@@ -83,7 +84,7 @@ function showItem (root: Node, itemId: number, onChange: () => void): void {
             c.on(Node.EventType.TOUCH_END, () => {
                 const st = Store.data.heroes[id];
                 if (!st) return;
-                if (st.level >= Store.data.level) { Fx.toast('不可超过主公等级'); return; }
+                if (st.level >= Store.data.level) { Fx.toast(TXT.toast.lvCap); return; }
                 Store.addItem(itemId, -1);
                 const lv = Store.levelUp(id, it.expValue || 100);
                 Store.save();
@@ -96,26 +97,26 @@ function showItem (root: Node, itemId: number, onChange: () => void): void {
         const b = nd('use', 240, 68, panel);
         b.setPosition(0, -60);
         box(b, 12, C.btn, C.gold, 2);
-        txt(b, '使用', FS.h2, C.textDark, 240, 44);
+        txt(b, TXT.bag.use, FS.h2, C.textDark, 240, 44);
         b.on(Node.EventType.TOUCH_END, () => {
             if (it.name.indexOf('体力') >= 0) {
                 Store.addItem(itemId, -1);
                 Store.addStamina(30);
                 Store.save();
-                Fx.toast('体力 +30');
+                Fx.toast(TXT.bag.staminaGain.replace('{n}', '30'));
             } else {
-                Fx.toast('该道具暂不可直接使用');
+                Fx.toast(TXT.bag.cantUseDirect);
             }
             m.destroy();
             onChange();
         });
     } else {
-        txt(panel, '材料类道具在武将养成时自动消耗', FS.small, C.textWeak, 520, 34, 0, -20);
+        txt(panel, TXT.bag.materialAutoUse, FS.small, C.textWeak, 520, 34, 0, -20);
     }
 
     const close = nd('close', 200, 64, panel);
     close.setPosition(0, -180);
     box(close, 12, C.btnGhost, C.panelLine, 2);
-    txt(close, '关闭', FS.h2, C.textSub, 200, 44);
+    txt(close, TXT.common.close, FS.h2, C.textSub, 200, 44);
     close.on(Node.EventType.TOUCH_END, () => m.destroy());
 }

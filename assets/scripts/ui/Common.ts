@@ -4,6 +4,7 @@ import { nd, box, boxAdd, boxAddLine, circleAdd, triAdd, lineAdd, txt, gfx } fro
 import { C, FS, qualityColor, campColor, QUALITY_NAME, CAMP_NAME, ROLE_NAME } from '../core/Theme';
 import { Store } from '../core/Store';
 import { getHeroConf } from '../data/HeroConf';
+import { TXT } from '../data/TextConf';
 
 /** 顶部条：返回 + 标题 + 主公等级；返回 refresh() */
 export function topBar (parent: Node, title: string, back?: () => void): { node: Node; refresh: () => void } {
@@ -14,7 +15,7 @@ export function topBar (parent: Node, title: string, back?: () => void): { node:
         const b = nd('back', 76, 60, n);
         b.setPosition(-250, 0);
         box(b, 10, C.btnGhost, C.panelLine, 2);
-        txt(b, '返回', FS.small, C.textSub, 76, 60);
+        txt(b, TXT.common.back, FS.small, C.textSub, 76, 60);
         b.on(Node.EventType.TOUCH_END, back);
     }
 
@@ -64,11 +65,11 @@ export function bottomNav (parent: Node, current: NavKey, onNav: (k: NavKey) => 
     box(n, 14, new Color(24, 18, 13, 235), C.panelLine, 2);
 
     const items: { k: NavKey; t: string }[] = [
-        { k: 'home', t: '主城' },
-        { k: 'lineup', t: '阵容' },
-        { k: 'hero', t: '武将' },
-        { k: 'recruit', t: '招募' },
-        { k: 'bag', t: '背包' },
+        { k: 'home', t: TXT.common.home },
+        { k: 'lineup', t: TXT.lineup.title },
+        { k: 'hero', t: TXT.hero.title },
+        { k: 'recruit', t: TXT.recruit.title },
+        { k: 'bag', t: TXT.bag.title },
     ];
     const xs = [-240, -120, 0, 120, 240];
     items.forEach((it, i) => {

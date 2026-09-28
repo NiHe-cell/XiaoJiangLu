@@ -8,6 +8,7 @@ import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, heroCard, NavKey, starStr } from './Common';
 import { getHeroConf } from '../data/HeroConf';
 import { BOND_CONF } from '../data/BondConf';
+import { TXT } from '../data/TextConf';
 
 const PAGE_SIZE = 12;
 
@@ -15,13 +16,13 @@ export function buildLineupPanel (parent: Node): Node {
     const root = nd('Lineup', 720, 1280, parent);
     root.setPosition(0, 0);
     fullBg(root, C.bg);
-    topBar(root, '阵容', () => Router.back());
+    topBar(root, TXT.lineup.title, () => Router.back());
     resBar(root);
 
     let page = 0;
 
     // ---- 上阵区 ----
-    txt(root, '上阵武将（点击下阵）', FS.small, C.textSub, 580, 34, 0, 470);
+    txt(root, TXT.lineup.lineupHint, FS.small, C.textSub, 580, 34, 0, 470);
     const slotXs = [-110, 0, 110];
     const slotYs = [392, 250];
     const lineupLayer = nd('lineupLayer', 700, 300, root);
@@ -38,7 +39,7 @@ export function buildLineupPanel (parent: Node): Node {
                 heroCard(lineupLayer, {
                     confId: id, x, y, w: 104, h: 138, showLevel: true, showStar: true,
                     onClick: () => {
-                        if (isMain) { Fx.toast('主公不可下阵'); return; }
+                        if (isMain) { Fx.toast(TXT.toast.needMain); return; }
                         const arr = Store.data.lineup.slice();
                         arr.splice(i, 1);
                         Store.setLineup(arr);
@@ -52,7 +53,7 @@ export function buildLineupPanel (parent: Node): Node {
                     const tag = nd('mainTag', 104, 138, lineupLayer);
                     tag.setPosition(x, y);
                     boxAddLine(tag, -52, -69, 104, 138, 12, C.gold, 3);
-                    txt(tag, '主公', 15, C.gold, 60, 22, 0, 69 - 12);
+                    txt(tag, TXT.common.mainName, 15, C.gold, 60, 22, 0, 69 - 12);
                 }
             } else {
                 const s = nd('slot', 104, 138, lineupLayer);
@@ -61,7 +62,7 @@ export function buildLineupPanel (parent: Node): Node {
                 boxAddLine(s, -32, -32, 64, 64, 8, C.panelLine, 3);
                 lineAdd(s, -16, 0, 16, 0, C.panelLine, 4);
                 lineAdd(s, 0, -16, 0, 16, C.panelLine, 4);
-                txt(s, '空位', 16, C.textWeak, 100, 24, 0, 0);
+                txt(s, TXT.common.emptySlot, 16, C.textWeak, 100, 24, 0, 0);
             }
         }
     };
@@ -70,14 +71,14 @@ export function buildLineupPanel (parent: Node): Node {
     const pwBar = nd('pw', 580, 56, root);
     pwBar.setPosition(0, 138);
     box(pwBar, 12, C.panel, C.goldDim, 2);
-    txt(pwBar, '阵容战力', FS.small, C.textSub, 160, 40, -240, 0);
+    txt(pwBar, TXT.lineup.power, FS.small, C.textSub, 160, 40, -240, 0);
     const pwVal = txt(pwBar, String(Store.totalPower()), FS.h1, C.gold, 200, 40, -60, 0);
     const cb = Store.campBonus();
-    txt(pwBar, cb.camp ? `${CAMP_NAME[cb.camp]}阵营光环 +${Math.round(cb.atkPct * 100)}% 攻/+${Math.round(cb.hpPct * 100)}% 血` : '同阵营 2 人起激活光环',
+    txt(pwBar, cb.camp ? `${CAMP_NAME[cb.camp]}阵营光环 +${Math.round(cb.atkPct * 100)}% 攻/+${Math.round(cb.hpPct * 100)}% 血` : TXT.lineup.campAuraOff.replace('{n}', '2'),
         FS.small, cb.camp ? C.green : C.textWeak, 460, 40, 150, 0);
 
     // ---- 未上阵 ----
-    txt(root, '未上阵武将（点击上阵）', FS.small, C.textSub, 580, 34, 0, 84);
+    txt(root, TXT.lineup.poolHint, FS.small, C.textSub, 580, 34, 0, 84);
     const poolLayer = nd('pool', 700, 420, root);
     poolLayer.setPosition(0, 0);
 
@@ -96,7 +97,7 @@ export function buildLineupPanel (parent: Node): Node {
             heroCard(poolLayer, {
                 confId: h.confId, x, y, w: 96, h: 126, showLevel: true, showStar: true, compact: true,
                 onClick: () => {
-                    if (Store.data.lineup.length >= 6) { Fx.toast('上阵已满 6 人'); return; }
+                    if (Store.data.lineup.length >= 6) { Fx.toast(TXT.toast.lineupFull); return; }
                     const arr = Store.data.lineup.slice();
                     arr.push(h.confId);
                     Store.setLineup(arr);
@@ -108,19 +109,19 @@ export function buildLineupPanel (parent: Node): Node {
                 },
             });
         });
-        if (!list.length) txt(poolLayer, '暂无可上阵武将，去招募更多吧', FS.body, C.textWeak, 580, 60, 0, -60);
+        if (!list.length) txt(poolLayer, TXT.empty.pool, FS.body, C.textWeak, 580, 60, 0, -60);
 
         // 翻页
         if (total > 1) {
             const pv = nd('prev', 130, 52, poolLayer);
             pv.setPosition(-190, -230);
             box(pv, 10, C.btnGhost, C.panelLine, 2);
-            txt(pv, '上一页', FS.small, C.textSub, 130, 40);
+            txt(pv, TXT.common.pagePrev, FS.small, C.textSub, 130, 40);
             pv.on(Node.EventType.TOUCH_END, () => { page--; rebuildPool(); });
             const nx = nd('next', 130, 52, poolLayer);
             nx.setPosition(190, -230);
             box(nx, 10, C.btnGhost, C.panelLine, 2);
-            txt(nx, '下一页', FS.small, C.textSub, 130, 40);
+            txt(nx, TXT.common.pageNext, FS.small, C.textSub, 130, 40);
             nx.on(Node.EventType.TOUCH_END, () => { page++; rebuildPool(); });
             txt(poolLayer, `${page + 1}/${total}`, FS.small, C.textSub, 160, 40, 0, -230);
         }
@@ -132,10 +133,10 @@ export function buildLineupPanel (parent: Node): Node {
     const refreshBonds = () => {
         bondLayer.destroyAllChildren();
         box(bondLayer, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
-        txt(bondLayer, '已激活羁绊', FS.small, C.gold, 200, 30, -222, 28);
+        txt(bondLayer, TXT.lineup.bondOn, FS.small, C.gold, 200, 30, -222, 28);
         const act = Store.activeBonds();
         if (!act.length) {
-            txt(bondLayer, '将有关联的武将同时上阵即可激活（如桃园结义：刘备+关羽+张飞）', FS.tiny, C.textWeak, 620, 30, 0, -12);
+            txt(bondLayer, TXT.lineup.bondHow, FS.tiny, C.textWeak, 620, 30, 0, -12);
         } else {
             const names = act.map((b) => b.name).join(' · ');
             txt(bondLayer, names, FS.small, C.green, 620, 30, 0, -12);

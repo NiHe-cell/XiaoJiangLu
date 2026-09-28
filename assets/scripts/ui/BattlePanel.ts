@@ -15,6 +15,7 @@ import { BOND_CONF } from '../data/BondConf';
 import { getStageConf, STAGE_CONF } from '../data/StageConf';
 import { BattleCore, Unit, Ev } from '../model/BattleCore';
 import { BAL } from '../data/Balance';
+import { TXT } from '../data/TextConf';
 
 const { ccclass } = _decorator;
 
@@ -53,15 +54,15 @@ export class BattleCtrl extends Component {
         const s = getStageConf(this.stageId);
         const root = this.node;
         fullBg(root, C.bgDeep);
-        topBar(root, s ? s.name : '战斗', () => {
-            Fx.confirm('放弃本场战斗？体力不会返还', () => Router.back(), '放弃', '继续打');
+        topBar(root, s ? s.name : TXT.common.battleName, () => {
+            Fx.confirm(TXT.battle.giveUpAsk, () => Router.back(), TXT.common.giveUp, TXT.common.goOn);
         });
 
         // 回合 / 提示（y=520，敌阵上方）
         const stBar = nd('stBar', 580, 34, root);
         stBar.setPosition(0, 520);
-        this.roundL = txt(stBar, '第 1 回合', FS.small, C.star, 200, 30, -200, 0);
-        this.tipL = txt(stBar, '准备', FS.small, C.textSub, 400, 30, 90, 0);
+        this.roundL = txt(stBar, TXT.battle.round.replace('{n}', '1'), FS.small, C.star, 200, 30, -200, 0);
+        this.tipL = txt(stBar, TXT.battle.ready, FS.small, C.textSub, 400, 30, 90, 0);
 
         this.field = nd('field', 700, 1000, root);
         this.field.setPosition(0, 0);
@@ -116,7 +117,7 @@ export class BattleCtrl extends Component {
         const log = nd('log', 576, 72, root);
         log.setPosition(0, 124);
         box(log, 12, new Color(24, 18, 13, 235), C.panelLine, 2);
-        this.logL = txt(log, '两军对阵，战鼓将起', FS.body, C.textSub, 540, 40);
+        this.logL = txt(log, TXT.battle.initialLog, FS.body, C.textSub, 540, 40);
 
         // ---- 技能指令条 cy=-350 ----
         const bar = nd('skillBar', 580, 116, root);
@@ -134,19 +135,19 @@ export class BattleCtrl extends Component {
         // ---- 控制条 cy=-456 ----
         const ctrl = nd('ctrl', 580, 96, root);
         ctrl.setPosition(0, -456);
-        this.mkBtn(ctrl, -192, '自动：关', () => {
+        this.mkBtn(ctrl, -192, TXT.battle.autoLabelOff, () => {
             this.auto = !this.auto;
             this.refreshCtrl();
             if (this.auto && this.state === 'wait') this.doAct(this.pendingUid, true);
         });
-        this.mkBtn(ctrl, 0, '倍速 1x', () => {
+        this.mkBtn(ctrl, 0, TXT.battle.speedLabel.replace('{n}', '1'), () => {
             this.speed = this.speed === 1 ? 2 : (this.speed === 2 ? 3 : 1);
             this.refreshCtrl();
         }, 'speedBtn');
-        this.comboBtn = this.mkBtn(ctrl, 192, '合击', () => {
+        this.comboBtn = this.mkBtn(ctrl, 192, TXT.battle.combo, () => {
             if (!this.core) return;
             const r = this.core.readyCombos();
-            if (!r.length) { Fx.toast('暂无可合击羁绊'); return; }
+            if (!r.length) { Fx.toast(TXT.battle.noCombo); return; }
             const evs = this.core.tryCombo(r[0]);
             if (evs) this.play(evs);
         }, 'comboBtn');
@@ -173,8 +174,8 @@ export class BattleCtrl extends Component {
     }
 
     private refreshCtrl (): void {
-        if (this.autoLabel) this.autoLabel.string = `自动：${this.auto ? '开' : '关'}`;
-        if (this.speedLabel) this.speedLabel.string = `倍速 ${this.speed}x`;
+        if (this.autoLabel) this.autoLabel.string = (this.auto ? TXT.battle.autoLabelOn : TXT.battle.autoLabelOff);
+        if (this.speedLabel) this.speedLabel.string = TXT.battle.speedLabel.replace('{n}', String(this.speed));
     }
 
     private makeSkillBtn (b: Node, u: Unit): void {
@@ -189,10 +190,10 @@ export class BattleCtrl extends Component {
         this.skillBars[u.uid] = this.mkBar(rg, 64, 8, C.rageFill, C.rageBack);
         b.on(Node.EventType.TOUCH_END, () => {
             if (this.state === 'end') return;
-            if (this.state !== 'wait') { Fx.toast('不是该武将的回合'); return; }
-            if (u.uid !== this.pendingUid) { Fx.toast('请等待当前武将行动'); return; }
+            if (this.state !== 'wait') { Fx.toast(TXT.battle.notYourTurn); return; }
+            if (u.uid !== this.pendingUid) { Fx.toast(TXT.battle.waitTurn); return; }
             const uu = this.core!.get(u.uid);
-            if (uu.rage < BAL.rageMax) { Fx.toast('怒气未满'); return; }
+            if (uu.rage < BAL.rageMax) { Fx.toast(TXT.toast.noRage); return; }
             this.doAct(u.uid, true);
         });
     }
@@ -332,7 +333,7 @@ export class BattleCtrl extends Component {
         } else if (e.k === 'skill') {
             const from = this.core.get(e.from);
             const sk = getSkillConf(e.skillId);
-            this.log(`${getHeroConf(from.confId).name} 施放【${sk ? sk.name : '必杀'}】`);
+            this.log(`${getHeroConf(from.confId).name} 施放【${sk ? sk.name : TXT.battle.ult}】`);
             if (sk && sk.cast) Fx.floatText(this.field, 0, 200, sk.cast, C.gold, FS.h1, 50);
             for (let i = 0; i < e.to.length; i++) {
                 const v = this.views[e.to[i]];
@@ -347,8 +348,8 @@ export class BattleCtrl extends Component {
         } else if (e.k === 'combo') {
             const from = this.core.get(e.from);
             const bd = BOND_CONF.find((b) => b.id === e.bondId);
-            Fx.floatText(this.field, 0, 220, `${bd ? bd.name : '羁绊'}·合击`, C.ember, FS.title, 60);
-            this.log(`${getHeroConf(from.confId).name} 触发【${bd ? bd.name : '羁绊'}】合击！`);
+            Fx.floatText(this.field, 0, 220, `${bd ? bd.name : TXT.battle.bondName}·合击`, C.ember, FS.title, 60);
+            this.log(`${getHeroConf(from.confId).name} 触发【${bd ? bd.name : TXT.battle.bondName}】合击！`);
             for (let i = 0; i < e.to.length; i++) {
                 const v = this.views[e.to[i]];
                 if (v) {
@@ -370,7 +371,7 @@ export class BattleCtrl extends Component {
             if (u.side === 0) this.deadAllies++;
             this.log(`${getHeroConf(u.confId).name} 阵亡`);
         } else if (e.k === 'end') {
-            this.log(e.winner === 0 ? '敌军溃败！' : '我军败退…');
+            this.log(e.winner === 0 ? TXT.battle.enemyLose : TXT.battle.ourLose);
         }
 
         // 同步血条 / 怒气
@@ -385,7 +386,7 @@ export class BattleCtrl extends Component {
         }
         if (this.comboLabel) {
             const ready = this.core.readyCombos().length > 0;
-            this.comboLabel.string = ready ? '合击！' : '合击';
+            this.comboLabel.string = ready ? TXT.battle.comboShout : TXT.battle.combo;
             this.comboLabel.color = ready ? C.star : C.textSub;
         }
     }
