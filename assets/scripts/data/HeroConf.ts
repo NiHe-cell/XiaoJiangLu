@@ -15,7 +15,15 @@
  *    阵营内再按「品质降序 × 索引首尾交替」落位，让红将彼此隔得最开。
  *  - headwear H1-H6：兜鍪 / 羽扇冠 / 文士巾 / 凤翅盔 / 帅盔 / 道冠；主角强制 H5 帅盔 + 金色王冠符号
  *  - gender / featureTag 供 UnitView 画发式与五官标记；featureTag 三值封死，不加第四种
- *  - avatarColor 已降级 @deprecated：卡面主色最终由 visualIdx->HUES 派生（待 UI 侧 4 处引用切换后删除）
+ *
+ * ⚠️ 关于「avatarColor 是否该被 visualIdx->HUES 取代」——结论是不取代，2026-09-29 定案：
+ *  avatarColor 表面是「每人一个色」，实际是按阵营分组的色系（魏 #3E6FA8 蓝 / 蜀 #276B4B 绿 /
+ *  吴 #B5462F 红 / 群 #6B4A8C 紫），它承担的是「一眼看出阵营」这个功能，不是装饰。
+ *  visualIdx 铺的是黄金角 24 色相、追求的是「同阵营内彼此拉开」，两者目标不同、不能互换：
+ *  换成 HUES 会把阵营色打散，等于拆掉一条已经在用的可读性设计（且 Ui.ts 的阵营角标
+ *  本来就做「色 + 形状」双编码来照顾色盲用户，色系散掉后形状编码会单独承压）。
+ *  所以：avatarColor = 阵营主色，唯一事实来源；visualIdx/headwear = 未来接真立绘时的预留，
+ *  目前 UI 尚未消费（不要因为字段没被引用就误判成死数据而删掉）。
  */
 
 /** 阵营 */
@@ -71,13 +79,9 @@ export interface HeroConf {
   skillId: number;
   talentId: number;
   bondIds: number[];
-  /**
-   * @deprecated 卡面主色一律由 visualIdx -> HeroPalette.HUES 派生，此字段仅剩历史占位用途。
-   * UI 侧残留引用：BattlePanel.ts:171 / BattlePanel.ts:216 / BattlePanel.ts:272 / Common.ts:132。
-   * 待上述 4 处切到 heroMainColor(id) 后，本字段连同 24 处数据一并删除。
-   */
+  /** 卡面主色 = 阵营色（魏蓝 / 蜀绿 / 吴红 / 群紫）。不要再改成 visualIdx 派生，见文件头定案说明 */
   avatarColor: string;
-  /** 取色索引 0-23，互不重复，指向 HeroPalette.HUES */
+  /** 取色索引 0-23，互不重复。预留给「同阵营内彼此拉开」的立绘着色，UI 目前未消费 */
   visualIdx: number;
   headwear: HeroHeadwear;
   /** 性别，决定发式与默认头饰走向 */

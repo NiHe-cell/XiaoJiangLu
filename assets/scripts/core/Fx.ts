@@ -52,17 +52,18 @@ class FxClass {
         const yes = nd('btnYes', 200, 76, p);
         yes.setPosition(-110, -66);
         box(yes, 12, C.btnPrimary, C.gold, 2);
-        const ly = yes.addComponent(Label)!;
-        ly.string = yesText; ly.fontSize = FS.h2; ly.lineHeight = FS.h2 + 6; ly.color = C.text;
-        ly.horizontalAlign = HorizontalTextAlignment.CENTER; ly.verticalAlign = VerticalTextAlignment.CENTER;
+        // 按钮文字必须走 txt()（建独立子节点 + CLAMP），不能在这里 addComponent(Label)：
+        // Label 默认 Overflow.NONE，会在首帧把宿主节点的 UITransform 重设成「文字尺寸」。
+        // 实测 btnYes 被压成 56×43（2 字 ×28px）、btnNo 84×43 —— 声明的 200×76 热区没了，
+        // 高度 43 还低于 §6 R2 的 44 下限。Graphics 的圆角框是建节点时画的、不会跟着缩，
+        // 所以肉眼看按钮是满的、实际只有字那一条能点中。
+        txt(yes, yesText, FS.h2, C.text, 200, 76);
         yes.on(Node.EventType.TOUCH_END, () => { m.destroy(); onYes(); });
 
         const no = nd('btnNo', 200, 76, p);
         no.setPosition(110, -66);
         box(no, 12, C.btnGhost, C.panelLine, 2);
-        const ln = no.addComponent(Label)!;
-        ln.string = noText; ln.fontSize = FS.h2; ln.lineHeight = FS.h2 + 6; ln.color = C.textSub;
-        ln.horizontalAlign = HorizontalTextAlignment.CENTER; ln.verticalAlign = VerticalTextAlignment.CENTER;
+        txt(no, noText, FS.h2, C.textSub, 200, 76);
         no.on(Node.EventType.TOUCH_END, () => { m.destroy(); });
     }
 

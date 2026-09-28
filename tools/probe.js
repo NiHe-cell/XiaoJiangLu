@@ -202,6 +202,25 @@ const PROBE_FN = () => {
     console.log('== 战斗 ==');
     await run('battle');
 
+    // 弹窗必须单独巡检：模态层（Fx.confirm / toast）挂在 mask 上、不在任何面板树里，
+    // 上面 13 个界面全都走不到它 —— 56×43 的确认按钮热区就是这么漏过来的。
+    // 直接注入三星存档并重载，比真打一场攒三星快 26 秒，且确定性强。
+    console.log('== 扫荡确认弹窗 ==');
+    await page.evaluate((k) => {
+        const eq = { weapon: 0, armor: 0, helmet: 0, necklace: 0, treasure: 0 };
+        localStorage.setItem(k, JSON.stringify({
+            heroes: { 1000: { confId: 1000, level: 1, exp: 0, star: 1, adv: 0, equip: eq },
+                1001: { confId: 1001, level: 1, exp: 0, star: 1, adv: 0, equip: eq } },
+            lineup: [1000, 1001], stageStars: { 101: 3 }, maxStageId: 101, stamina: 120,
+        }));
+    }, 'xxl_save_v1');
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(5000);
+    await page.mouse.click(sx(0), sy(20));      // 出征
+    await page.waitForTimeout(1200);
+    await page.mouse.click(sx(-148), sy(300));  // 关卡 101（三星 → 弹扫荡确认）
+    await run('confirm');
+
     console.log('');
     console.log(`硬失败合计 ${hard} 项 | 仅框越界 ${softList.length} 项`);
     if (hardList.length) { console.log('—— 硬失败清单 ——'); hardList.forEach((s) => console.log('  ' + s)); }
