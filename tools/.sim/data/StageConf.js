@@ -65,7 +65,7 @@ exports.STAGE_CONF = [
         storyAfter: '谁也不肯先动。最后还是动了。' },
     // 原 [1033,1032,1035] 只有 3 个 id，第 2 章要 4 人 → 取模复刻出两个董卓，配貂蝉抬的治疗
     // 导致实测胜率只有 8%。改为 4 个不重复 id，且第 2 章不放治疗型辅助
-    { id: 205, chapter: 2, index: 5, name: '洛阳余烬', enemyIds: [1033, 1034, 1035, 1006], enemyLevel: 13,
+    { id: 205, chapter: 2, index: 5, name: '洛阳余烬', enemyIds: [1033, 1032, 1035, 1006], enemyLevel: 13,
         storyBefore: '董卓走前，把洛阳烧了个干净。',
         storyAfter: '灰里刨出半块玉。没人认领。' },
     { id: 206, chapter: 2, index: 6, name: '荥阳追击', enemyIds: [1006, 1034, 1035], enemyLevel: 14,

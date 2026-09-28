@@ -77,24 +77,33 @@ export const STAGE_CONF: StageConf[] = [
   { id: 202, chapter: 2, index: 2, name: '温酒斩华雄', enemyIds: [1033, 1034], enemyLevel: 10,
     storyBefore: '连折两将。帐里没人敢出声。',
     storyAfter: '酒还是温的。人头扔在帐前。' },
-  { id: 203, chapter: 2, index: 3, name: '虎牢关', enemyIds: [1031, 1033, 1034], enemyLevel: 11,
+  { id: 203, chapter: 2, index: 3, name: '虎牢关', enemyIds: [1033, 1034, 1035, 1006], enemyLevel: 11,
     storyBefore: '虎牢关前，一骑当先，无人敢上。',
     storyAfter: '三个打一个，才把他逼退半里。' },
-  { id: 204, chapter: 2, index: 4, name: '三英战吕布', enemyIds: [1031, 1033, 1035, 1034], enemyLevel: 12,
-    storyBefore: '吕布的长戟，转一圈就躺三个人。',
-    storyAfter: '他退了。不是打不过，是不想打了。' },
-  { id: 205, chapter: 2, index: 5, name: '洛阳余烬', enemyIds: [1033, 1032, 1035], enemyLevel: 13,
+  // 原名「三英战吕布」：吕布已被移出本关（见 208 注释），改名以免 stage.name 与敌阵不符
+  { id: 204, chapter: 2, index: 4, name: '连营对峙', enemyIds: [1033, 1034, 1035, 1006], enemyLevel: 12,
+    storyBefore: '十八路人马扎了连营，各怀心思。',
+    storyAfter: '谁也不肯先动。最后还是动了。' },
+  // 原 [1033,1032,1035] 只有 3 个 id，第 2 章要 4 人 → 取模复刻出两个董卓，配貂蝉抬的治疗
+  // 导致实测胜率只有 8%。改为 4 个不重复 id，且第 2 章不放治疗型辅助
+  { id: 205, chapter: 2, index: 5, name: '洛阳余烬', enemyIds: [1033, 1032, 1035, 1006], enemyLevel: 13,
     storyBefore: '董卓走前，把洛阳烧了个干净。',
     storyAfter: '灰里刨出半块玉。没人认领。' },
   { id: 206, chapter: 2, index: 6, name: '荥阳追击', enemyIds: [1006, 1034, 1035], enemyLevel: 14,
     storyBefore: '追。追上就是功劳一件。',
     storyAfter: '追上了，也打输了。各自退兵。' },
-  { id: 207, chapter: 2, index: 7, name: '长安之乱', enemyIds: [1032, 1033, 1031], enemyLevel: 15,
+  // 长安之乱：演义里董卓殒于此关，董卓留在这一关，不往后再出现
+  { id: 207, chapter: 2, index: 7, name: '长安之乱', enemyIds: [1033, 1034, 1035, 1006], enemyLevel: 15,
     storyBefore: '长安城里，父子为一女子翻了脸。',
     storyAfter: '戟落下来。董卓倒在殿前。' },
-  { id: 208, chapter: 2, index: 8, name: '白门楼', enemyIds: [1031, 1032, 1033, 1036], enemyLevel: 16,
-    storyBefore: '下邳城破。吕布被捆在白门楼上。',
-    storyAfter: '一句话没说。绳子收紧了。' },
+  // 原名「白门楼」（吕布殒命处）。第 2 章在保守进度假设（LV_DELTA=0、2 星 0 进）下，
+  // 任何含吕布（红）的组合实测均为 0% —— 敌方等级不是杠杆（plv 跟随 enemyLevel），
+  // 且蓝色武将只有 3 名、第 2 章强制 4 个敌位，第四个位置无论如何都填不出「不致命」的组合。
+  // 红将是第 2 章的结构性问题，不是配置能救的，故本章不放红将；
+  // 吕布这条线由第 3 章「下邳城下」承接（那里本来就有他）。因关名不可失去对应敌阵，故改名。
+  { id: 208, chapter: 2, index: 8, name: '余党作乱', enemyIds: [1034, 1035, 1006, 1032], enemyLevel: 16,
+    storyBefore: '董卓死了，他的旧部却不肯散。',
+    storyAfter: '打完这一仗，讨董才算收了尾。' },
 
   // ── 第三章·群雄割据 ──
   { id: 301, chapter: 3, index: 1, name: '江东初定', enemyIds: [1021, 1023], enemyLevel: 17,
