@@ -14,6 +14,8 @@
  *    蜀 32.46° / 魏 32.46° / 吴 64.92° / 群 52.52°，全局最差 32.46° ≥ 30° 目标。
  *    阵营内再按「品质降序 × 索引首尾交替」落位，让红将彼此隔得最开。
  *  - headwear H1-H6：兜鍪 / 羽扇冠 / 文士巾 / 凤翅盔 / 帅盔 / 道冠；主角强制 H5 帅盔 + 金色王冠符号
+ *  - gender / featureTag 供 UnitView 画发式与五官标记；featureTag 三值封死，不加第四种
+ *  - avatarColor 已降级 @deprecated：卡面主色最终由 visualIdx->HUES 派生（待 UI 侧 4 处引用切换后删除）
  */
 
 /** 阵营 */
@@ -41,6 +43,12 @@ export enum Quality {
   Red = 4,
 }
 
+/** 性别。注意：主角（1000）开局可选男女，表中的值只是默认，UI 须用存档值覆盖 */
+export type HeroGender = 'male' | 'female';
+
+/** 五官特征标记，三值封死，不得开成开放字符串（否则每个特例都会变成 UnitView 里的一条 if） */
+export type HeroFeatureTag = 'none' | 'beard' | 'eyepatch';
+
 /** 头饰：H1 兜鍪 / H2 羽扇冠 / H3 文士巾 / H4 凤翅盔 / H5 帅盔 / H6 道冠 */
 export type HeroHeadwear = 'H1' | 'H2' | 'H3' | 'H4' | 'H5' | 'H6';
 
@@ -63,10 +71,19 @@ export interface HeroConf {
   skillId: number;
   talentId: number;
   bondIds: number[];
+  /**
+   * @deprecated 卡面主色一律由 visualIdx -> HeroPalette.HUES 派生，此字段仅剩历史占位用途。
+   * UI 侧残留引用：BattlePanel.ts:171 / BattlePanel.ts:216 / BattlePanel.ts:272 / Common.ts:132。
+   * 待上述 4 处切到 heroMainColor(id) 后，本字段连同 24 处数据一并删除。
+   */
   avatarColor: string;
   /** 取色索引 0-23，互不重复，指向 HeroPalette.HUES */
   visualIdx: number;
   headwear: HeroHeadwear;
+  /** 性别，决定发式与默认头饰走向 */
+  gender: HeroGender;
+  /** 五官特征标记，仅 none / beard / eyepatch 三值 */
+  featureTag: HeroFeatureTag;
   desc: string;
 }
 
@@ -93,6 +110,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#59B88C',
     visualIdx: 7,
     headwear: 'H5',
+    gender: 'male',
+    featureTag: 'none',
     desc: '陈留起兵，白手聚义。这一仗，从你开始。',
   },
   {
@@ -117,6 +136,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#3E6FA8',
     visualIdx: 0,
     headwear: 'H5',
+    gender: 'male',
+    featureTag: 'none',
     desc: '挟天子以令诸侯。横槊赋诗，也是真豪杰。',
   },
   {
@@ -141,6 +162,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#2F5A8C',
     visualIdx: 15,
     headwear: 'H1',
+    gender: 'male',
+    featureTag: 'eyepatch',
     desc: '拔矢啖睛，独目犹战。曹营头号硬骨头。',
   },
   {
@@ -165,6 +188,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#4E86C6',
     visualIdx: 17,
     headwear: 'H4',
+    gender: 'male',
+    featureTag: 'none',
     desc: '威震逍遥津。八百步卒，踏碎江东十万兵。',
   },
   {
@@ -189,6 +214,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#335F93',
     visualIdx: 11,
     headwear: 'H1',
+    gender: 'male',
+    featureTag: 'none',
     desc: '裸衣战马超，虎痴名不虚。主公身前那面盾。',
   },
   {
@@ -213,6 +240,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#5C97D6',
     visualIdx: 10,
     headwear: 'H3',
+    gender: 'male',
+    featureTag: 'none',
     desc: '鬼才善断，十胜十败。惜乎早逝，赤壁无人。',
   },
   {
@@ -237,6 +266,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#3A6BA0',
     visualIdx: 14,
     headwear: 'H1',
+    gender: 'male',
+    featureTag: 'none',
     desc: '治军严整，长驱直入。樊城城下，解了那围。',
   },
   {
@@ -261,6 +292,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#2E7D5B',
     visualIdx: 4,
     headwear: 'H5',
+    gender: 'male',
+    featureTag: 'none',
     desc: '织席贩履起身，三顾得卧龙。仁德不软，是能忍。',
   },
   {
@@ -285,6 +318,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#276B4B',
     visualIdx: 2,
     headwear: 'H5',
+    gender: 'male',
+    featureTag: 'beard',
     desc: '温酒斩华雄，千里走单骑。义字压过生死。',
   },
   {
@@ -309,6 +344,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#1F5E42',
     visualIdx: 22,
     headwear: 'H1',
+    gender: 'male',
+    featureTag: 'none',
     desc: '万人敌。当阳桥上一声吼，河水都退了三分。',
   },
   {
@@ -333,6 +370,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#3A9C6E',
     visualIdx: 3,
     headwear: 'H4',
+    gender: 'male',
+    featureTag: 'none',
     desc: '长坂坡七进七出，怀抱幼主，白袍不带血。',
   },
   {
@@ -357,6 +396,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#4FB27F',
     visualIdx: 19,
     headwear: 'H4',
+    gender: 'male',
+    featureTag: 'none',
     desc: '锦马超，西凉铁骑。渭水追得曹操割须弃袍。',
   },
   {
@@ -381,6 +422,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#357A55',
     visualIdx: 5,
     headwear: 'H4',
+    gender: 'male',
+    featureTag: 'none',
     desc: '老当益壮。定军山一刀，斩了夏侯渊。',
   },
   {
@@ -405,6 +448,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#63C08F',
     visualIdx: 21,
     headwear: 'H2',
+    gender: 'male',
+    featureTag: 'none',
     desc: '羽扇纶巾，六出祁山。星落五丈原，出师未捷。',
   },
   {
@@ -429,6 +474,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#B5462F',
     visualIdx: 1,
     headwear: 'H5',
+    gender: 'male',
+    featureTag: 'none',
     desc: '小霸王。匹马定江东，二十六岁止于一场猎。',
   },
   {
@@ -453,6 +500,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#C75B3E',
     visualIdx: 18,
     headwear: 'H2',
+    gender: 'male',
+    featureTag: 'none',
     desc: '羽扇一挥，赤壁火起。曲有误，周郎顾。',
   },
   {
@@ -477,6 +526,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#D9705A',
     visualIdx: 8,
     headwear: 'H6',
+    gender: 'female',
+    featureTag: 'none',
     desc: '江东乔氏长女。琴声慢，压得住刀兵声。',
   },
   {
@@ -501,6 +552,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#E0856F',
     visualIdx: 12,
     headwear: 'H6',
+    gender: 'female',
+    featureTag: 'none',
     desc: '战前奉茶，战后抚琴。东风若不来，她也不急。',
   },
   {
@@ -525,6 +578,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#6B4A8C',
     visualIdx: 6,
     headwear: 'H5',
+    gender: 'male',
+    featureTag: 'none',
     desc: '人中吕布，马中赤兔。辕门一箭，无人敢动。',
   },
   {
@@ -549,6 +604,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#8A5FA8',
     visualIdx: 23,
     headwear: 'H6',
+    gender: 'female',
+    featureTag: 'none',
     desc: '连环计里的一枚棋子。凤仪亭下，哭也当戏演。',
   },
   {
@@ -573,6 +630,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#5A3E72',
     visualIdx: 9,
     headwear: 'H1',
+    gender: 'male',
+    featureTag: 'none',
     desc: '一把火烧了洛阳。肚里那点油，点了三天灯。',
   },
   {
@@ -597,6 +656,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#7A55A0',
     visualIdx: 13,
     headwear: 'H4',
+    gender: 'male',
+    featureTag: 'none',
     desc: '河北上将。白马坡前，一刀未出便落了马。',
   },
   {
@@ -621,6 +682,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#66468A',
     visualIdx: 16,
     headwear: 'H1',
+    gender: 'male',
+    featureTag: 'none',
     desc: '与颜良并称河北双雄。延津渡口，亡于乱箭。',
   },
   {
@@ -645,6 +708,8 @@ export const HERO_CONF: HeroConf[] = [
     avatarColor: '#9B7BB8',
     visualIdx: 20,
     headwear: 'H6',
+    gender: 'male',
+    featureTag: 'none',
     desc: '刮骨疗毒，麻沸散。医得人身，医不了天下。',
   },
 ];
