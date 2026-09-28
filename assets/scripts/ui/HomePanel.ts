@@ -19,13 +19,13 @@ export function buildHomePanel (parent: Node): Node {
     resBar(root);
 
     // 战力条
-    const pw = nd('powerBar', 660, 62, root);
+    const pw = nd('powerBar', 580, 62, root);
     pw.setPosition(0, 462);
     box(pw, 12, C.panel, C.goldDim, 2);
-    txt(pw, '阵容战力', FS.small, C.textSub, 160, 44, -240, 0);
+    txt(pw, '阵容战力', FS.small, C.textSub, 140, 44, -215, 0);
     txt(pw, String(Store.totalPower()), FS.h1, C.gold, 240, 44, -40, 0);
     const pwBtn = nd('pwBtn', 130, 44, pw);
-    pwBtn.setPosition(250, 0);
+    pwBtn.setPosition(205, 0);
     box(pwBtn, 10, C.btn, C.gold, 2);
     txt(pwBtn, '调整阵容', FS.small, C.textDark, 130, 44);
     pwBtn.on(Node.EventType.TOUCH_END, () => Router.go('lineup'));
@@ -82,15 +82,15 @@ export function buildHomePanel (parent: Node): Node {
     });
 
     // 今日目标
-    const goal = nd('goal', 660, 96, root);
+    const goal = nd('goal', 580, 96, root);
     goal.setPosition(0, -270);
     box(goal, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     txt(goal, '今日目标', FS.small, C.gold, 200, 34, -222, 24);
     txt(goal, '推图 3 次 · 招募 1 次 · 强化武将 1 次', FS.small, C.textSub, 520, 34, 20, -10);
-    boxAdd(goal, -300, -26, 600, 6, 3, new Color(60, 46, 33));
-    boxAdd(goal, -300, -26, 200, 6, 3, C.green);
+    boxAdd(goal, -276, -26, 552, 6, 3, new Color(60, 46, 33));
+    boxAdd(goal, -276, -26, 184, 6, 3, C.green);
 
-    txt(root, '提示：怒气满时点击武将头像，可手动释放必杀技', FS.small, C.textWeak, 660, 36, 0, -420);
+    txt(root, '提示：怒气满时点击武将头像，可手动释放必杀技', FS.small, C.textWeak, 580, 36, 0, -420);
 
     bottomNav(root, 'home', (k: NavKey) => {
         if (k === 'home') return;
@@ -100,8 +100,11 @@ export function buildHomePanel (parent: Node): Node {
     return root;
 }
 
+/** 关卡 id → 章号。id 形如 101/208/605：(id-100)/100 + 1。
+ *  注意 maxStageId 的哨兵值是 100（= 第一章第一关的前一关），
+ *  用旧的 id/100 会把 100 算成第 2 章。 */
 function chapterOf (stageId: number): number {
-    return Math.floor(stageId / 100) + 1;
+    return Math.max(1, Math.floor((stageId - 100) / 100) + 1);
 }
 
 function drawHomeBg (bg: Node): void {

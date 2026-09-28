@@ -1,5 +1,5 @@
 /** 出征：章节 + 关卡列表 + 扫荡 */
-import { Node, Color } from 'cc';
+import { Node, Color, HorizontalTextAlignment } from 'cc';
 import { nd, box, boxAdd, txt, fullBg } from '../core/Ui';
 import { C, FS } from '../core/Theme';
 import { Store } from '../core/Store';
@@ -39,7 +39,9 @@ export function buildStagePanel (parent: Node, param?: any): Node {
         });
     };
 
-    const desc = txt(root, '', FS.small, C.textSub, 660, 34, 0, 404);
+    // 章节描述是动态文本：六章里最长的一行约 790px 字宽（静态测算），
+    // 单行 580 框必然被 CLAMP 切掉且两侧出屏 —— 改为开换行、给两行高度。
+    const desc = txt(root, '', FS.small, C.textSub, 562, 64, 0, 396, HorizontalTextAlignment.CENTER, true);
 
     const listLayer = nd('list', 700, 460, root);
     listLayer.setPosition(0, 0);
@@ -94,7 +96,7 @@ export function buildStagePanel (parent: Node, param?: any): Node {
         setTimeout(() => { entering = false; }, 400);
     };
 
-    const tip = txt(root, '', FS.small, C.textWeak, 660, 30, 0, -230);
+    const tip = txt(root, '', FS.small, C.textWeak, 580, 30, 0, -230);
     const refreshTip = () => {
         const id = Store.data.maxStageId;
         const s = STAGE_CONF.find((x) => x.id === id);
@@ -102,7 +104,7 @@ export function buildStagePanel (parent: Node, param?: any): Node {
     };
 
     // 剧情回顾
-    const story = nd('story', 660, 110, root);
+    const story = nd('story', 580, 110, root);
     story.setPosition(0, -320);
     box(story, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     txt(story, '战报', FS.small, C.gold, 160, 30, -240, 32);

@@ -30,7 +30,7 @@ function buildList (parent: Node): Node {
     const layer = nd('layer', 700, 620, root);
     layer.setPosition(0, 0);
 
-    txt(root, `已拥有 ${Store.heroList().length} / 全图鉴 ${HERO_CONF.length}`, FS.small, C.textSub, 660, 32, 0, 462);
+    txt(root, `已拥有 ${Store.heroList().length} / 全图鉴 ${HERO_CONF.length}`, FS.small, C.textSub, 580, 32, 0, 462);
 
     const rebuild = () => {
         layer.destroyAllChildren();
@@ -54,7 +54,7 @@ function buildList (parent: Node): Node {
                 txt(layer, '上阵中', 15, C.textDark, 96, 22, x, y + 63 - 11);
             }
         });
-        if (!list.length) txt(layer, '还没有武将，去招募吧', FS.body, C.textWeak, 660, 60, 0, 0);
+        if (!list.length) txt(layer, '还没有武将，去招募吧', FS.body, C.textWeak, 580, 60, 0, 0);
 
         if (total > 1) {
             const pv = nd('prev', 130, 52, layer);
@@ -83,15 +83,17 @@ function buildDetail (parent: Node, confId: number): Node {
     fullBg(root, C.bg);
     const res = resBar(root);
     const c = getHeroConf(confId);
-    topBar(root, c.name, () => Router.go('hero'));
+    // 返回上一界面：有上一层就 back()（销毁本层），只有本层时才 reset。
+    // 用 Router.go('hero') 兜底会让每次返回都往栈里再压一个 HeroList。
+    topBar(root, c.name, () => { if (Router.depth > 1) Router.back(); else Router.reset('hero'); });
 
     const refreshAll: (() => void)[] = [];
 
     // 大卡
-    const big = nd('big', 660, 220, root);
-    big.setPosition(0, 424);
+    const big = nd('big', 580, 220, root);
+    big.setPosition(0, 396);
     box(big, 14, C.panel, qualityColor(c.quality), 3);
-    heroCard(big, { confId, x: -220, y: 0, w: 150, h: 190, showLevel: false, showStar: false });
+    heroCard(big, { confId, x: -212, y: 0, w: 150, h: 190, showLevel: false, showStar: false });
     const st = Store.data.heroes[confId];
     txt(big, c.name, FS.title, C.text, 200, 40, -70, 66);
     txt(big, `${QUALITY_NAME[c.quality]} · ${CAMP_NAME[c.camp]} · ${ROLE_NAME[c.role]}`, FS.small, C.textSub, 380, 30, 55, 34);
@@ -101,8 +103,8 @@ function buildDetail (parent: Node, confId: number): Node {
     const pwL = txt(big, '', FS.h2, C.gold, 380, 32, 120, -70);
 
     // 属性
-    const attr = nd('attr', 660, 150, root);
-    attr.setPosition(0, 244);
+    const attr = nd('attr', 580, 150, root);
+    attr.setPosition(0, 200);
     box(attr, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     const rows: { k: string; get: () => number }[] = [
         { k: '生命', get: () => Store.attrOf(confId).hp },
@@ -113,10 +115,12 @@ function buildDetail (parent: Node, confId: number): Node {
     ];
     const valLabels: any[] = [];
     rows.forEach((r, i) => {
-        const x = -240 + (i % 3) * 240;
-        const y = 40 - Math.floor(i / 3) * 62;
-        txt(attr, r.k, FS.small, C.textSub, 120, 34, x, y);
-        const v = txt(attr, '', FS.h2, C.text, 160, 34, x + 100, y);
+        // 三列中心 -193 / 0 / 193，列内「名左值右」；边缘 ±285 落在安全区 ±290 内。
+        // 原写法 x+100 是错的：第三列值标签中心会跑到 design x=340，整块出屏。
+        const cx = -193 + (i % 3) * 193;
+        const cy = 40 - Math.floor(i / 3) * 62;
+        txt(attr, r.k, FS.small, C.textSub, 88, 34, cx - 50, cy);
+        const v = txt(attr, '', FS.h2, C.text, 92, 34, cx + 46, cy);
         valLabels.push(v);
     });
 
@@ -177,17 +181,18 @@ function buildDetail (parent: Node, confId: number): Node {
         },
     ];
     acts.forEach((a, i) => {
-        const b = nd('act' + i, 320, 76, root);
-        b.setPosition(i % 2 === 0 ? -166 : 166, 100 - Math.floor(i / 2) * 92);
+        // 284 宽 + 中心 ±148 → 边缘 ±290，正好压在安全区线上（原 320/±166 会到 ±326）
+        const b = nd('act' + i, 284, 76, root);
+        b.setPosition(i % 2 === 0 ? -148 : 148, 76 - Math.floor(i / 2) * 92);
         box(b, 12, C.btnGhost, C.goldDim, 2);
-        txt(b, a.t, FS.h2, C.text, 200, 34, -50, 8);
-        txt(b, a.sub, FS.tiny, C.textSub, 200, 26, 50, -14);
+        txt(b, a.t, FS.h2, C.text, 156, 34, -58, 8);
+        txt(b, a.sub, FS.tiny, C.textSub, 128, 26, 56, -14);
         b.on(Node.EventType.TOUCH_END, a.fn);
     });
 
     // 技能
-    const sk = nd('skill', 660, 150, root);
-    sk.setPosition(0, -90);
+    const sk = nd('skill', 580, 150, root);
+    sk.setPosition(0, -160);
     box(sk, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     const rage = getSkillConf(c.skillId);
     txt(sk, '怒气技', FS.small, C.gold, 160, 28, -240, 50);
@@ -198,8 +203,8 @@ function buildDetail (parent: Node, confId: number): Node {
     txt(sk, c.desc, FS.tiny, C.textWeak, 620, 40, 0, -42);
 
     // 羁绊
-    const bd = nd('bond', 660, 150, root);
-    bd.setPosition(0, -270);
+    const bd = nd('bond', 580, 150, root);
+    bd.setPosition(0, -340);
     box(bd, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     txt(bd, '相关羁绊', FS.small, C.gold, 200, 28, -222, 50);
     const mine = BOND_CONF.filter((b) => b.heroIds.indexOf(confId) >= 0);
@@ -214,7 +219,8 @@ function buildDetail (parent: Node, confId: number): Node {
     const refresh = () => {
         if (!st) return;
         lvL.string = `Lv.${st.level}`;
-        advL.string = `进阶 +${st.adv}　战力 ${Store.powerOf(confId)}`;
+        // 只显示进阶数：战力在下一行 pwL 已经显示，此处重复会让同一数字出现两遍
+        advL.string = `进阶 +${st.adv}`;
         pwL.string = `战力 ${Store.powerOf(confId)}`;
         starL.string = starStr(st.star);
         rows.forEach((r, i) => { valLabels[i].string = String(r.get()); });

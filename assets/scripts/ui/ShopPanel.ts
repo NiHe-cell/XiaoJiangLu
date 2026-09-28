@@ -36,7 +36,7 @@ export function buildShopPanel (parent: Node): Node {
     const layer = nd('layer', 700, 520, root);
     layer.setPosition(0, 0);
 
-    txt(root, '货架每日限量，售罄可花费将玉刷新', FS.tiny, C.textWeak, 660, 30, 0, 462);
+    txt(root, '货架每日限量，售罄可花费将玉刷新', FS.tiny, C.textWeak, 580, 30, 0, 462);
 
     const rebuild = () => {
         layer.destroyAllChildren();
@@ -87,7 +87,7 @@ export function buildShopPanel (parent: Node): Node {
         Fx.toast('货架已刷新');
     });
 
-    const tip = nd('tip', 660, 120, root);
+    const tip = nd('tip', 580, 120, root);
     tip.setPosition(0, -200);
     box(tip, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     txt(tip, '无付费墙说明', FS.small, C.gold, 200, 30, -222, 34);

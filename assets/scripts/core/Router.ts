@@ -22,6 +22,12 @@ class RouterClass {
         return this.stack.length ? this.stack[this.stack.length - 1].name : '';
     }
 
+    /** 当前栈深度。用于「有上一层就 back()，没有才 reset()」这类返回逻辑，
+     *  避免用 go() 兜底导致栈无限增长、旧面板永不销毁。 */
+    get depth (): number {
+        return this.stack.length;
+    }
+
     go (name: string, param?: any, replace = false): void {
         if (!this.root) return;
         if (!this.builders[name]) {

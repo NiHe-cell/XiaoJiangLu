@@ -11,14 +11,22 @@
  *     不乘系数的话治疗量只占坦克血量的 5%，辅助等于没用。
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BAL = exports.STAGES_PER_CHAPTER = exports.COUNTER_EVEN = exports.COUNTER_DOWN = exports.COUNTER_UP = exports.CRIT_CAP = exports.DMG_SCALE = exports.MIN_DAMAGE = exports.HEAL_VARIANCE = exports.DMG_VARIANCE = exports.COMBO_ATK_SCALE = exports.HEAL_SCALE = exports.MIN_DEF_FACTOR = exports.DEF_K = void 0;
+exports.BAL = exports.STAGES_PER_CHAPTER = exports.COUNTER_EVEN = exports.COUNTER_DOWN = exports.COUNTER_UP = exports.CRIT_CAP = exports.DMG_SCALE = exports.MIN_DAMAGE = exports.HEAL_VARIANCE = exports.DMG_VARIANCE = exports.COMBO_ATK_SCALE = exports.HEAL_SCALE = exports.HEAL_ATK_K = exports.HEAL_HP_K = exports.MIN_DEF_FACTOR = exports.DEF_K = void 0;
 // ───────────────────────── 可调常量 ─────────────────────────
 /** 防御折算常数 K：伤害倍率 = K / (K + def)。K 越小防御越硬（回合数越长）。 */
 exports.DEF_K = 500;
 /** 防御减伤后的最低保底系数，防止极端配装下伤害被压到 0 */
 exports.MIN_DEF_FACTOR = 0.15;
-/** 治疗放大系数（见文件头说明 4） */
-exports.HEAL_SCALE = 2.0;
+/**
+ * 治疗：主词条 = 目标最大生命的百分比，副词条 = 施法者攻击。
+ * 只按攻击算的话，辅助的攻击只有输出的一半多点，一口奶不到坦克血量的 5%，
+ * 治疗等于不存在（960 场模拟实证：场均我方阵亡 3.3 / 5 人）。
+ * HEAL_HP_K = 每 1.0 healRatio 恢复「目标最大生命」的 22%，一口奶约抵一次普攻。
+ */
+exports.HEAL_HP_K = 0.22;
+/** 治疗的攻击系数（保留小权重，让辅助堆攻击仍有意义） */
+exports.HEAL_ATK_K = 1.2; /** 向后兼容旧名（= 攻击系数），旧代码引用 HEAL_SCALE 不会断 */
+exports.HEAL_SCALE = exports.HEAL_ATK_K;
 /** 合击攻击力折算：合击攻击 = 参与成员有效攻击之和 × 该系数 */
 exports.COMBO_ATK_SCALE = 0.65;
 /** 伤害随机浮动 ±5%（0.95 ~ 1.05），一个 each-hit 独立 roll */
@@ -28,11 +36,15 @@ exports.HEAL_VARIANCE = 0.06;
 /** 单次打击最低伤害 */
 exports.MIN_DAMAGE = 1;
 /**
- * 全局伤害缩放 [待数值验证 · 主理人校准]
- * 200 场模拟实证：不加缩放时平均 28 回合（互奶拖场），远超「单场 0-30s」的手感目标。
- * 取 2.4 后模拟落在 4-6 回合。改这一个数即可整体加快/放慢战斗节奏。
+ * 全局伤害缩放 [待数值验证 · 裴策 2026-09-29 用 960 场模拟标定]
+ * 标定口径：分章进度阵容（第1章 3 人 / 第6章五虎 6 人）、双方同等级、无装备，48 关 × 20 局。
+ *   scale 6.5 → 平均 3.6 回合，分布里 1-2 回合 40%，双方被「一回合打穿」，且三星率 0%
+ *   scale 3.5 → 平均 5.07 回合，普攻占目标最大生命 28.8%（≈3.5 刀砍死一个）
+ *   scale 3.0 → 平均 5.84 回合，占 24.5%（≈4 刀），78% 的场次落在 3-7 回合 ← 取这个
+ *   scale 2.5 → 平均 6.86 回合，占 20.4%，超时率升到 1.4%（互奶拖场开始出现）
+ * 改这一个数即可整体加快/放慢战斗节奏；低于 2.5 会出现奶量追平伤害的僵局。
  */
-exports.DMG_SCALE = 6.5;
+exports.DMG_SCALE = 3.0;
 /** 暴击率上限 */
 exports.CRIT_CAP = 0.75;
 /** 软克制：克制方 / 被克方 / 中性 */
@@ -43,6 +55,14 @@ exports.COUNTER_EVEN = 1.0;
 exports.STAGES_PER_CHAPTER = 8;
 // ───────────────────────── 数值主体 ─────────────────────────
 exports.BAL = {
+    /** 单次打击保底伤害（防止极端防御配装下打 0 血带来的「点了没反应」） */
+    minDamage: exports.MIN_DAMAGE,
+    /** 暴击率上限 */
+    critCap: exports.CRIT_CAP,
+    /** 防御折算常数 K（只读参考，改这里不生效，改上面的 DEF_K） */
+    defK: exports.DEF_K,
+    /** 合击攻击力折算系数（只读引用，改上面的 COMBO_ATK_SCALE） */
+    comboAtkScale: exports.COMBO_ATK_SCALE,
     /** 怒气上限 */
     rageMax: 100,
     /** 战场开局给每个人物的初始怒气（让第一个必杀落在第 3 回合左右） */
@@ -91,12 +111,13 @@ exports.BAL = {
         }
         return out;
     },
-    /** 治疗公式：= 有效攻击 × 系数 × HEAL_SCALE，实际回复在 BattleCore 里按 maxHp 截断 */
-    calcHeal(atk, ratio, rnd) {
+    /** 治疗公式：目标最大生命为主 + 施法者攻击为辅。maxHp 省略时退化成纯攻击系数 */
+    calcHeal(atk, ratio, rnd, maxHp) {
         const a = Math.max(0, exports.BAL.fin(atk));
         const r = Math.max(0, exports.BAL.fin(ratio));
+        const hp = Math.max(0, exports.BAL.fin(maxHp));
         const variance = 1 - exports.HEAL_VARIANCE / 2 + exports.BAL.clamp01(rnd) * exports.HEAL_VARIANCE;
-        const out = Math.round(a * r * exports.HEAL_SCALE * variance);
+        const out = Math.round((hp * r * exports.HEAL_HP_K + a * r * exports.HEAL_ATK_K) * variance);
         if (!isFinite(out) || out < 1) {
             return 1;
         }
@@ -150,6 +171,26 @@ exports.BAL = {
             return 2;
         }
         return 1;
+    },
+    /**
+     * 实战用敌人数：在 stageEnemyCount 基础上**按我方上阵人数封顶**。
+     * 直接照搬 3-6 的话，新手 3 人阵容会被 4 人敌阵打崩（107/108/203/204/207/208 实测胜率 0%）。
+     * 第 1-2 章敌数 ≤ 我方人数；第 3-4 章 +1（开始有压力）；第 5-6 章 +2（需要成型阵容）。
+     * @param allyCount 我方上阵人数
+     */
+    stageEnemyCountFor(chapter, index, allyCount) {
+        const base = exports.BAL.stageEnemyCount(chapter, index);
+        const allies = Math.max(1, Math.floor(exports.BAL.fin(allyCount)));
+        const c = Math.max(1, Math.floor(exports.BAL.fin(chapter)));
+        let cap = allies;
+        if (c >= 3) {
+            cap = allies + 1;
+        }
+        if (c >= 5) {
+            cap = allies + 2;
+        }
+        const n = Math.min(base, cap);
+        return Math.max(1, Math.min(6, n));
     },
     /** 关卡常驻奖励：随章节、章内序号、玩家等级三段增长 */
     stageReward(chapter, index, level) {

@@ -34,7 +34,7 @@ export function buildRecruitPanel (parent: Node): Node {
     topBar(root, '招募', () => Router.reset('home'));
 
     // 招贤台
-    const stage = nd('stage', 660, 380, root);
+    const stage = nd('stage', 580, 380, root);
     stage.setPosition(0, 300);
     box(stage, 16, C.panel, C.goldDim, 2);
     const g = stage.addComponent(Graphics)!;
@@ -48,13 +48,15 @@ export function buildRecruitPanel (parent: Node): Node {
         { q: 4, p: '红 4%' }, { q: 3, p: '橙 12%' }, { q: 2, p: '紫 28%' }, { q: 1, p: '蓝 56%' },
     ];
     probs.forEach((p, i) => {
-        const b = nd('p' + i, 150, 54, stage);
-        b.setPosition(-225 + i * 150, -40);
+        // 4 枚芯片按「宽140 + 步长146」排：总跨度 578，边缘 ±289 落在安全区 ±290 内。
+        // 原「宽150 + 步长144」跨度 582，最右一枚右缘到 292，会戳出面板边框。
+        const b = nd('p' + i, 140, 54, stage);
+        b.setPosition(-219 + i * 146, -40);
         box(b, 10, qualityColor(p.q), C.textDark, 2);
-        txt(b, p.p, FS.small, C.textDark, 150, 40);
+        txt(b, p.p, FS.small, C.textDark, 130, 40);
     });
-    txt(stage, '十连必出紫色及以上武将', FS.small, C.green, 600, 34, 0, -110);
-    txt(stage, `将玉余额 ${Store.data.jade}`, FS.small, C.q3, 600, 34, 0, -150);
+    txt(stage, '十连必出紫色及以上武将', FS.small, C.green, 560, 34, 0, -110);
+    txt(stage, `将玉余额 ${Store.data.jade}`, FS.small, C.q3, 560, 34, 0, -150);
 
     // 按钮
     const one = nd('one', 320, 96, root);
@@ -95,9 +97,9 @@ export function buildRecruitPanel (parent: Node): Node {
         showResult(root, ids, got, res.refresh);
     });
 
-    txt(root, '本作无付费入口，将玉全部通过推图、日常与排名产出', FS.tiny, C.textWeak, 660, 32, 0, -200);
+    txt(root, '本作无付费入口，将玉全部通过推图、日常与排名产出', FS.tiny, C.textWeak, 580, 32, 0, -200);
 
-    const pity = nd('pity', 660, 90, root);
+    const pity = nd('pity', 580, 90, root);
     pity.setPosition(0, -320);
     box(pity, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     txt(pity, `累计招募 ${Store.data.recruited} 次`, FS.small, C.textSub, 400, 34, -110, 18);
@@ -127,7 +129,7 @@ function grant (ids: number[]): string[] {
 function showResult (root: Node, ids: number[], got: string[], refresh: () => void): void {
     const m = mask(root, 200);
     m.setSiblingIndex(9000);
-    const p = nd('result', 660, 720, m);
+    const p = nd('result', 580, 720, m);
     p.setPosition(0, 60);
     box(p, 18, C.panel, C.gold, 3);
     txt(p, '招募结果', FS.title, C.gold, 400, 44, 0, 310);

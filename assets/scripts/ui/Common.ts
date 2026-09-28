@@ -12,7 +12,7 @@ export function topBar (parent: Node, title: string, back?: () => void): { node:
 
     if (back) {
         const b = nd('back', 76, 60, n);
-        b.setPosition(-255, 0);
+        b.setPosition(-250, 0);
         box(b, 10, C.btnGhost, C.panelLine, 2);
         txt(b, '返回', FS.small, C.textSub, 76, 60);
         b.on(Node.EventType.TOUCH_END, back);
@@ -21,7 +21,9 @@ export function topBar (parent: Node, title: string, back?: () => void): { node:
     const t = txt(n, title, FS.h1, C.gold, 340, 60, back ? 10 : 0, 0);
 
     const pill = nd('lvPill', 150, 52, n);
-    pill.setPosition(back ? 215 : 262, 0);
+    // 150 宽 + 中心 214 → 右缘 289，压在安全区 ±290 内侧。
+    // 原值 240 会让右缘到 315，主公药丸的圆角框在 9:19.5 上被真机切掉。
+    pill.setPosition(back ? 190 : 214, 0);
     box(pill, 26, C.panelLight, C.goldDim, 2);
     const lv = txt(pill, '', FS.small, C.text, 130, 44, 0, 0);
 

@@ -22,9 +22,9 @@ export function buildResultPanel (parent: Node, param?: any): Node {
     const stageId = param ? param.stageId : 1;
     const s = getStageConf(stageId);
 
-    txt(root, win ? '大获全胜' : '败走麦城', 44, win ? C.gold : C.red, 660, 60, 0, 470);
-    txt(root, s ? s.name : '', FS.h2, C.textSub, 660, 40, 0, 412);
-    txt(root, `耗时 ${rounds} 回合`, FS.small, C.textWeak, 660, 32, 0, 360);
+    txt(root, win ? '大获全胜' : '败走麦城', 44, win ? C.gold : C.red, 580, 60, 0, 470);
+    txt(root, s ? s.name : '', FS.h2, C.textSub, 580, 40, 0, 412);
+    txt(root, `耗时 ${rounds} 回合`, FS.small, C.textWeak, 580, 32, 0, 360);
 
     // 星级
     for (let i = 0; i < 3; i++) {
@@ -32,10 +32,10 @@ export function buildResultPanel (parent: Node, param?: any): Node {
         n.setPosition(-110 + i * 110, 270);
         drawStar(n, i < stars ? C.gold : new Color(80, 68, 54));
     }
-    txt(root, stars === 3 ? '完美通关，可扫荡' : (stars > 0 ? '通关成功' : '再接再厉'), FS.small, C.textSub, 660, 32, 0, 200);
+    txt(root, stars === 3 ? '完美通关，可扫荡' : (stars > 0 ? '通关成功' : '再接再厉'), FS.small, C.textSub, 580, 32, 0, 200);
 
     // 奖励
-    const box1 = nd('reward', 660, 260, root);
+    const box1 = nd('reward', 580, 260, root);
     box1.setPosition(0, 40);
     box(box1, 14, C.panel, C.goldDim, 2);
     txt(box1, '战斗奖励', FS.small, C.gold, 200, 30, -220, 100);
@@ -52,7 +52,7 @@ export function buildResultPanel (parent: Node, param?: any): Node {
 
     // 剧情
     if (s && win) {
-        const st = nd('story', 660, 90, root);
+        const st = nd('story', 580, 90, root);
         st.setPosition(0, -160);
         box(st, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
         txt(st, s.storyAfter || '捷报传回，三军振奋。', FS.small, C.textSub, 620, 56, 0, 0, undefined, true);

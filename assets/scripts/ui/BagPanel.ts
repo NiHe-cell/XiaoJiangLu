@@ -40,7 +40,7 @@ export function buildBagPanel (parent: Node): Node {
             txt(card, `×${Store.itemCount(it.id)}`, 15, C.gold, 92, 24, 0, -36);
             card.on(Node.EventType.TOUCH_END, () => showItem(root, it.id, () => { rebuild(); res.refresh(); }));
         });
-        if (!list.length) txt(layer, '背包空空如也，去推图或商城看看吧', FS.body, C.textWeak, 660, 60, 0, 200);
+        if (!list.length) txt(layer, '背包空空如也，去推图或商城看看吧', FS.body, C.textWeak, 580, 60, 0, 200);
 
         if (total > 1) {
             const pv = nd('prev', 130, 52, layer);

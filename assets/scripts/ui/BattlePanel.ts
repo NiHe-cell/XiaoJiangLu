@@ -12,7 +12,7 @@ import { topBar, roleGlyph, hexColor } from './Common';
 import { getHeroConf } from '../data/HeroConf';
 import { getSkillConf } from '../data/SkillConf';
 import { BOND_CONF } from '../data/BondConf';
-import { getStageConf } from '../data/StageConf';
+import { getStageConf, STAGE_CONF } from '../data/StageConf';
 import { BattleCore, Unit, Ev } from '../model/BattleCore';
 import { BAL } from '../data/Balance';
 
@@ -58,7 +58,7 @@ export class BattleCtrl extends Component {
         });
 
         // 回合 / 提示（y=520，敌阵上方）
-        const stBar = nd('stBar', 640, 34, root);
+        const stBar = nd('stBar', 580, 34, root);
         stBar.setPosition(0, 520);
         this.roundL = txt(stBar, '第 1 回合', FS.small, C.star, 200, 30, -200, 0);
         this.tipL = txt(stBar, '准备', FS.small, C.textSub, 400, 30, 90, 0);
@@ -86,8 +86,20 @@ export class BattleCtrl extends Component {
             });
         });
         const level = s ? s.enemyLevel : 1;
-        const enemies = s ? s.enemyIds : [];
-        enemies.forEach((confId, i) => {
+        const pool = s ? s.enemyIds : [];
+        // 敌人数走 BAL.stageEnemyCountFor：在关卡配置基础上按「我方上阵人数」封顶。
+        // 直接照搬 enemyIds 会出现新手 3 人打 4 人 —— 裴策实测 107/108/203/204/207/208 胜率 0%。
+        // 再叠一层「同武将最多复刻一次」：与 tools/sim.js 的 enemyCount() 同口径，
+        // 否则 101 这种只配了 1 个敌将 id 的关卡会刷出 3 个一模一样的克隆体，
+        // 且运行时结果对不上裴策那 1920 场带此封顶的实证数据。
+        const enemyCount = pool.length && s
+            ? Math.min(
+                BAL.stageEnemyCountFor(s.chapter, s.index - 1, Store.data.lineup.length),
+                Math.max(1, pool.length * 2),
+            )
+            : 0;
+        for (let i = 0; i < enemyCount; i++) {
+            const confId = pool[i % pool.length];
             const a = Store.enemyAttr(confId, level);
             const c = getHeroConf(confId);
             units.push({
@@ -95,7 +107,7 @@ export class BattleCtrl extends Component {
                 hp: a.hp, maxHp: a.hp, atk: a.atk, pdef: a.pdef, mdef: a.mdef, speed: a.speed,
                 rage: 0, role: c.role, skillId: c.skillId, comboSkillId: 0, bondId: 0, alive: true, buffs: [],
             });
-        });
+        }
 
         this.core = new BattleCore(units, this.stageId * 7919 + 13);
         for (const u of units) this.views[u.uid] = this.makeUnit(this.field, u);
@@ -107,7 +119,7 @@ export class BattleCtrl extends Component {
         this.logL = txt(log, '两军对阵，战鼓将起', FS.body, C.textSub, 540, 40);
 
         // ---- 技能指令条 cy=-350 ----
-        const bar = nd('skillBar', 700, 116, root);
+        const bar = nd('skillBar', 580, 116, root);
         bar.setPosition(0, -350);
         box(bar, 14, new Color(28, 21, 15, 235), C.panelLine, 2);
         const mine = units.filter((u) => u.side === 0);
@@ -120,7 +132,7 @@ export class BattleCtrl extends Component {
         });
 
         // ---- 控制条 cy=-456 ----
-        const ctrl = nd('ctrl', 700, 96, root);
+        const ctrl = nd('ctrl', 580, 96, root);
         ctrl.setPosition(0, -456);
         this.mkBtn(ctrl, -192, '自动：关', () => {
             this.auto = !this.auto;
@@ -414,8 +426,9 @@ export class BattleCtrl extends Component {
             Store.addJade(bonus.jade);
             for (const it of reward.items) Store.addItem(it.id, it.n);
             if (stars > (Store.data.stageStars[this.stageId] || 0)) Store.data.stageStars[this.stageId] = stars;
-            const nextId = this.stageId + 1;
-            if (this.stageId >= Store.data.maxStageId) Store.data.maxStageId = Math.min(nextId, 599);
+            // 记「本关已通关」而不是「下一关已通关」：解锁判定是 id <= maxStageId + 1，
+            // 若记 nextId 会把下一关也判成已通关，直接跳关。
+            if (this.stageId >= Store.data.maxStageId) Store.data.maxStageId = Math.min(this.stageId, 599);
             Store.save();
         }
         const rounds = this.core ? this.core.round : 0;
@@ -429,6 +442,7 @@ export function buildBattlePanel (parent: Node, param?: any): Node {
     const root = nd('Battle', 720, 1280, parent);
     root.setPosition(0, 0);
     const ctrl = root.addComponent(BattleCtrl)!;
-    ctrl.setup(param && param.stageId ? param.stageId : 1);
+    // 兜底必须给一个真实存在的关卡 id：旧值 1 在 StageConf 里查不到（关卡从 101 起）
+    ctrl.setup(param && param.stageId ? param.stageId : (STAGE_CONF[0] ? STAGE_CONF[0].id : 101));
     return root;
 }

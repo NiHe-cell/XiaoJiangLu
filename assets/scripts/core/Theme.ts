@@ -20,7 +20,7 @@ function rgb (hex: string): Color {
 export const LAYOUT = {
     W: 720, H: 1280,
     SAFE_X: 290,        // 可点击元素左右硬边界
-    CONTENT_W: 640,
+    CONTENT_W: 580,     // 面板内容区标准宽 = SAFE_X × 2（禁止写 592/600/620 这类越界宽度）
     MARGIN: 32,
     GUTTER: 16,
     TOP_BAR_H: 100,

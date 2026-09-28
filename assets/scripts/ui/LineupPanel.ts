@@ -21,7 +21,7 @@ export function buildLineupPanel (parent: Node): Node {
     let page = 0;
 
     // ---- 上阵区 ----
-    txt(root, '上阵武将（点击下阵）', FS.small, C.textSub, 660, 34, 0, 470);
+    txt(root, '上阵武将（点击下阵）', FS.small, C.textSub, 580, 34, 0, 470);
     const slotXs = [-110, 0, 110];
     const slotYs = [392, 250];
     const lineupLayer = nd('lineupLayer', 700, 300, root);
@@ -67,7 +67,7 @@ export function buildLineupPanel (parent: Node): Node {
     };
 
     // ---- 战力 ----
-    const pwBar = nd('pw', 660, 56, root);
+    const pwBar = nd('pw', 580, 56, root);
     pwBar.setPosition(0, 138);
     box(pwBar, 12, C.panel, C.goldDim, 2);
     txt(pwBar, '阵容战力', FS.small, C.textSub, 160, 40, -240, 0);
@@ -77,7 +77,7 @@ export function buildLineupPanel (parent: Node): Node {
         FS.small, cb.camp ? C.green : C.textWeak, 460, 40, 150, 0);
 
     // ---- 未上阵 ----
-    txt(root, '未上阵武将（点击上阵）', FS.small, C.textSub, 660, 34, 0, 84);
+    txt(root, '未上阵武将（点击上阵）', FS.small, C.textSub, 580, 34, 0, 84);
     const poolLayer = nd('pool', 700, 420, root);
     poolLayer.setPosition(0, 0);
 
@@ -108,7 +108,7 @@ export function buildLineupPanel (parent: Node): Node {
                 },
             });
         });
-        if (!list.length) txt(poolLayer, '暂无可上阵武将，去招募更多吧', FS.body, C.textWeak, 660, 60, 0, -60);
+        if (!list.length) txt(poolLayer, '暂无可上阵武将，去招募更多吧', FS.body, C.textWeak, 580, 60, 0, -60);
 
         // 翻页
         if (total > 1) {
@@ -127,7 +127,7 @@ export function buildLineupPanel (parent: Node): Node {
     };
 
     // ---- 羁绊 ----
-    const bondLayer = nd('bond', 660, 96, root);
+    const bondLayer = nd('bond', 580, 96, root);
     bondLayer.setPosition(0, -380);
     const refreshBonds = () => {
         bondLayer.destroyAllChildren();

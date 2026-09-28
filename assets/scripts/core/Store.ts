@@ -53,7 +53,11 @@ function defaultData (): PlayerData {
     const d: PlayerData = {
         name: '主公', gender: 0, level: 1, exp: 0,
         silver: 5000, jade: 300, stamina: 120,
-        heroes: {}, lineup: [], items: {}, stageStars: {}, maxStageId: 0,
+        // maxStageId = 已通关的最高关卡 id。初始值必须是 100 而不是 0：
+        // 关卡 id 从 101 起（章节号×100 + 章内序号），解锁判定是 s.id <= maxStageId + 1，
+        // 初值 0 会让 101 <= 1 恒为假 —— 48 关全部锁死，新建档根本进不去战斗。
+        // 100 是「第一章第一关的前一关」哨兵值。
+        heroes: {}, lineup: [], items: {}, stageStars: {}, maxStageId: 100,
         autoBattle: false, speed: 1, recruited: 0, loginDay: 0, lastLoginTs: 0,
     };
     // 初始阵容：主角 + 两名初始武将（取数据表中前两名非主角武将）
@@ -243,7 +247,10 @@ class StoreClass {
     enemyAttr (confId: number, level: number): { hp: number; atk: number; pdef: number; mdef: number; speed: number } {
         const c = getHeroConf(confId);
         const g = Math.max(0, level - 1);
-        const k = 1 + g * 0.06;
+        // 等级系数：原 0.06 是「等级成长 + 额外乘数」的二次增长，敌方同时吃两份，
+        // 玩家只有 star/adv 一份 → 同级对比 26 级敌方 2.5× vs 玩家 1.46×，胜率上不去的唯一根因。
+        // 裴策 1920 场实测：0.06 → 53.1% 胜率 / 第6章 23%；0.035 → 78.5% / 64%；0.025 → 84.8% / 88%。
+        const k = 1 + g * 0.035;
         return {
             hp: Math.floor((c.baseHp + c.growHp * g) * k),
             atk: Math.floor((c.baseAtk + c.growAtk * g) * k),

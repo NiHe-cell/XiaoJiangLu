@@ -22,3 +22,6 @@ node_modules/
 # WebStorm
 #//////////////////////////
 .idea/
+# 验证脚本产出的截图（可随时用 node tools/smoke.js 重新生成）
+tools/*.png
+tools/.sim2/
