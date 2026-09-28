@@ -6,6 +6,14 @@
  *  2) 类型模板：Tank 高血高双防低速 / Phys 高物攻中速 / Magic 高攻低防 / Support 中血高速低防
  *  3) speed 决定出手顺序，取值 80-160，同类型武将刻意错开（如 Phys 108-136、Support 122-140）
  *  4) skillId = id + 1000（怒气技），talentId = id + 2000（天赋，进阶 +6 解锁）
+ *
+ * 视觉字段（由美术侧 HeroPalette 使用，纯展示，不参与战斗结算）：
+ *  - visualIdx 0-23 互不重复，对应 HeroPalette.HUES[24]（黄金角 137.508° 铺 24 色相）；
+ *    分配方式：黄金角下索引差 Δ∈{21,13,8} 会分别收敛到 7.66°/12.40°/20.06°，故把这三个差值当作
+ *    禁边、以「阵营容量 Shu8/Wei6/Qun6/Wu4」做图着色精确求解。实测同阵营两两色相间距：
+ *    蜀 32.46° / 魏 32.46° / 吴 64.92° / 群 52.52°，全局最差 32.46° ≥ 30° 目标。
+ *    阵营内再按「品质降序 × 索引首尾交替」落位，让红将彼此隔得最开。
+ *  - headwear H1-H6：兜鍪 / 羽扇冠 / 文士巾 / 凤翅盔 / 帅盔 / 道冠；主角强制 H5 帅盔 + 金色王冠符号
  */
 
 /** 阵营 */
@@ -33,6 +41,9 @@ export enum Quality {
   Red = 4,
 }
 
+/** 头饰：H1 兜鍪 / H2 羽扇冠 / H3 文士巾 / H4 凤翅盔 / H5 帅盔 / H6 道冠 */
+export type HeroHeadwear = 'H1' | 'H2' | 'H3' | 'H4' | 'H5' | 'H6';
+
 export interface HeroConf {
   id: number;
   name: string;
@@ -53,6 +64,9 @@ export interface HeroConf {
   talentId: number;
   bondIds: number[];
   avatarColor: string;
+  /** 取色索引 0-23，互不重复，指向 HeroPalette.HUES */
+  visualIdx: number;
+  headwear: HeroHeadwear;
   desc: string;
 }
 
@@ -77,6 +91,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3000,
     bondIds: [],
     avatarColor: '#59B88C',
+    visualIdx: 7,
+    headwear: 'H5',
     desc: '陈留起兵，白手聚义。这一仗，从你开始。',
   },
   {
@@ -99,6 +115,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3001,
     bondIds: [9],
     avatarColor: '#3E6FA8',
+    visualIdx: 0,
+    headwear: 'H5',
     desc: '挟天子以令诸侯。横槊赋诗，也是真豪杰。',
   },
   {
@@ -121,6 +139,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3002,
     bondIds: [10],
     avatarColor: '#2F5A8C',
+    visualIdx: 15,
+    headwear: 'H1',
     desc: '拔矢啖睛，独目犹战。曹营头号硬骨头。',
   },
   {
@@ -143,6 +163,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3003,
     bondIds: [8],
     avatarColor: '#4E86C6',
+    visualIdx: 17,
+    headwear: 'H4',
     desc: '威震逍遥津。八百步卒，踏碎江东十万兵。',
   },
   {
@@ -165,6 +187,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3004,
     bondIds: [10],
     avatarColor: '#335F93',
+    visualIdx: 11,
+    headwear: 'H1',
     desc: '裸衣战马超，虎痴名不虚。主公身前那面盾。',
   },
   {
@@ -187,6 +211,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3005,
     bondIds: [9],
     avatarColor: '#5C97D6',
+    visualIdx: 10,
+    headwear: 'H3',
     desc: '鬼才善断，十胜十败。惜乎早逝，赤壁无人。',
   },
   {
@@ -209,6 +235,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3006,
     bondIds: [8],
     avatarColor: '#3A6BA0',
+    visualIdx: 14,
+    headwear: 'H1',
     desc: '治军严整，长驱直入。樊城城下，解了那围。',
   },
   {
@@ -231,6 +259,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3011,
     bondIds: [1, 3],
     avatarColor: '#2E7D5B',
+    visualIdx: 4,
+    headwear: 'H5',
     desc: '织席贩履起身，三顾得卧龙。仁德不软，是能忍。',
   },
   {
@@ -253,6 +283,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3012,
     bondIds: [1, 2, 11],
     avatarColor: '#276B4B',
+    visualIdx: 2,
+    headwear: 'H5',
     desc: '温酒斩华雄，千里走单骑。义字压过生死。',
   },
   {
@@ -275,6 +307,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3013,
     bondIds: [1, 2],
     avatarColor: '#1F5E42',
+    visualIdx: 22,
+    headwear: 'H1',
     desc: '万人敌。当阳桥上一声吼，河水都退了三分。',
   },
   {
@@ -297,6 +331,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3014,
     bondIds: [2],
     avatarColor: '#3A9C6E',
+    visualIdx: 3,
+    headwear: 'H4',
     desc: '长坂坡七进七出，怀抱幼主，白袍不带血。',
   },
   {
@@ -319,6 +355,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3015,
     bondIds: [2],
     avatarColor: '#4FB27F',
+    visualIdx: 19,
+    headwear: 'H4',
     desc: '锦马超，西凉铁骑。渭水追得曹操割须弃袍。',
   },
   {
@@ -341,6 +379,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3016,
     bondIds: [2],
     avatarColor: '#357A55',
+    visualIdx: 5,
+    headwear: 'H4',
     desc: '老当益壮。定军山一刀，斩了夏侯渊。',
   },
   {
@@ -363,6 +403,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3017,
     bondIds: [3, 12],
     avatarColor: '#63C08F',
+    visualIdx: 21,
+    headwear: 'H2',
     desc: '羽扇纶巾，六出祁山。星落五丈原，出师未捷。',
   },
   {
@@ -385,6 +427,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3021,
     bondIds: [5],
     avatarColor: '#B5462F',
+    visualIdx: 1,
+    headwear: 'H5',
     desc: '小霸王。匹马定江东，二十六岁止于一场猎。',
   },
   {
@@ -407,6 +451,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3022,
     bondIds: [5, 12],
     avatarColor: '#C75B3E',
+    visualIdx: 18,
+    headwear: 'H2',
     desc: '羽扇一挥，赤壁火起。曲有误，周郎顾。',
   },
   {
@@ -429,6 +475,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3023,
     bondIds: [4],
     avatarColor: '#D9705A',
+    visualIdx: 8,
+    headwear: 'H6',
     desc: '江东乔氏长女。琴声慢，压得住刀兵声。',
   },
   {
@@ -451,6 +499,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3024,
     bondIds: [4],
     avatarColor: '#E0856F',
+    visualIdx: 12,
+    headwear: 'H6',
     desc: '战前奉茶，战后抚琴。东风若不来，她也不急。',
   },
   {
@@ -473,6 +523,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3031,
     bondIds: [6, 13],
     avatarColor: '#6B4A8C',
+    visualIdx: 6,
+    headwear: 'H5',
     desc: '人中吕布，马中赤兔。辕门一箭，无人敢动。',
   },
   {
@@ -495,6 +547,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3032,
     bondIds: [6, 13],
     avatarColor: '#8A5FA8',
+    visualIdx: 23,
+    headwear: 'H6',
     desc: '连环计里的一枚棋子。凤仪亭下，哭也当戏演。',
   },
   {
@@ -517,6 +571,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3033,
     bondIds: [13],
     avatarColor: '#5A3E72',
+    visualIdx: 9,
+    headwear: 'H1',
     desc: '一把火烧了洛阳。肚里那点油，点了三天灯。',
   },
   {
@@ -539,6 +595,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3034,
     bondIds: [7],
     avatarColor: '#7A55A0',
+    visualIdx: 13,
+    headwear: 'H4',
     desc: '河北上将。白马坡前，一刀未出便落了马。',
   },
   {
@@ -561,6 +619,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3035,
     bondIds: [7],
     avatarColor: '#66468A',
+    visualIdx: 16,
+    headwear: 'H1',
     desc: '与颜良并称河北双雄。延津渡口，亡于乱箭。',
   },
   {
@@ -583,6 +643,8 @@ export const HERO_CONF: HeroConf[] = [
     talentId: 3036,
     bondIds: [11],
     avatarColor: '#9B7BB8',
+    visualIdx: 20,
+    headwear: 'H6',
     desc: '刮骨疗毒，麻沸散。医得人身，医不了天下。',
   },
 ];
@@ -600,4 +662,68 @@ export const HERO_MAP: { [id: number]: HeroConf } = (() => {
 export function getHeroConf(id: number): HeroConf {
   const c = HERO_MAP[id];
   return c ? c : HERO_CONF[0];
+}
+
+// ── 以下为 UI 侧取用值与兜底规则 ──
+
+/** 主角 id，卡顶有金色王冠符号，headwear 强制 H5 */
+export const MAIN_HERO_ID = 1000;
+
+/** 阵营 key，供美术资源按名字索引（Camp 枚举是数字，这里给字符串别名） */
+export const CAMP_KEY: { [c: number]: string } = {
+  [Camp.Wei]: 'wei',
+  [Camp.Shu]: 'shu',
+  [Camp.Wu]: 'wu',
+  [Camp.Qun]: 'qun',
+};
+
+/** 类型 key：phy 物攻 / mag 法攻 / sup 辅助 / def 防御 */
+export const ROLE_KEY: { [r: number]: string } = {
+  [RoleType.Phys]: 'phy',
+  [RoleType.Magic]: 'mag',
+  [RoleType.Support]: 'sup',
+  [RoleType.Tank]: 'def',
+};
+
+/** 品质 key */
+export const QUALITY_KEY: { [q: number]: string } = {
+  [Quality.Green]: 'green',
+  [Quality.Blue]: 'blue',
+  [Quality.Purple]: 'purple',
+  [Quality.Orange]: 'orange',
+  [Quality.Red]: 'red',
+};
+
+/** 头饰显示名 */
+export const HEADWEAR_LABEL: { [h: string]: string } = {
+  H1: '兜鍪',
+  H2: '羽扇冠',
+  H3: '文士巾',
+  H4: '凤翅盔',
+  H5: '帅盔',
+  H6: '道冠',
+};
+
+/** 未配 headwear 时的兜底规则：防御→H1，法攻→H2，辅助→H6，其余→H4 */
+export function getDefaultHeadwear(role: RoleType): HeroHeadwear {
+  switch (role) {
+    case RoleType.Tank: return 'H1';
+    case RoleType.Magic: return 'H2';
+    case RoleType.Support: return 'H6';
+    default: return 'H4';
+  }
+}
+
+/** 取头饰，取不到按类型兜底（主角强制 H5 帅盔） */
+export function getHeadwear(id: number): HeroHeadwear {
+  const c = HERO_MAP[id];
+  if (!c) return 'H5';
+  if (c.id === MAIN_HERO_ID) return 'H5';
+  return c.headwear || getDefaultHeadwear(c.role);
+}
+
+/** 取取色索引，主角不走通用逻辑（UI 用其强制蓝品质色 + H5） */
+export function getVisualIdx(id: number): number {
+  const c = HERO_MAP[id];
+  return c ? c.visualIdx : 0;
 }
