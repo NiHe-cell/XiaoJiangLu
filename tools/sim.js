@@ -28,7 +28,10 @@ function playerAttr (confId, level, star, adv) {
         speed: c.baseSpeed,
     };
 }
-const ENEMY_K_COEF = Number(process.env.ENEMY_K || 0.06);
+// 默认值必须跟 Store.enemyAttr 保持一致（运行时已是 0.035）。
+// 之前默认 0.06 而运行时 0.035，不带 ENEMY_K 跑出来的胜率会凭空低 25 个百分点，
+// 很容易被误读成"改坏了"。仍可用环境变量覆盖做对照实验。
+const ENEMY_K_COEF = Number(process.env.ENEMY_K || 0.035);
 function enemyAttr (confId, level) {
     const c = HERO_MAP[confId]; const g = Math.max(0, level - 1); const k = 1 + g * ENEMY_K_COEF;
     return {
