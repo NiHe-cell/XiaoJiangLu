@@ -71,7 +71,7 @@ export function buildStagePanel (parent: Node, param?: any): Node {
             txt(card, `体力 ${STAMINA_COST}`, FS.tiny, C.cyan, 130, 26, 92, -20);
             if (!unlocked) txt(card, '未解锁', FS.small, C.textWeak, 280, 30, 0, 0);
 
-            card.on(Node.EventType.TOUCH_END, () => {
+            card.on(Node.EventType.TOUCH_END, () => guardEnter(() => {
                 if (!unlocked) { Fx.toast('请先通关上一关'); return; }
                 if (Store.data.stamina < STAMINA_COST) { Fx.toast('体力不足，可去商城购买体力丹'); return; }
                 if (stars >= 3) {
@@ -81,8 +81,17 @@ export function buildStagePanel (parent: Node, param?: any): Node {
                     return;
                 }
                 Router.go('battle', { stageId: s.id });
-            });
+            }));
         });
+    };
+
+    // 连点保护（温绘 §6 Map M05：400ms 内忽略二次点击，否则连跳两场战斗）
+    let entering = false;
+    const guardEnter = (fn: () => void): void => {
+        if (entering) return;
+        entering = true;
+        fn();
+        setTimeout(() => { entering = false; }, 400);
     };
 
     const tip = txt(root, '', FS.small, C.textWeak, 660, 30, 0, -230);

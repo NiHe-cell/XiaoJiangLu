@@ -276,7 +276,7 @@ export class BattleCtrl extends Component {
         const o = b.getComponent(UIOpacity) || b.addComponent(UIOpacity)!;
         if (this.hlTween) { this.hlTween.stop(); this.hlTween = null; }
         if (on) {
-            this.hlTween = tween(o).repeatForever(tween(o).to(0.4, { opacity: 160 }).to(0.4, { opacity: 255 }));
+            this.hlTween = tween(o).to(0.45, { opacity: 150 }).to(0.45, { opacity: 255 }).union().repeatForever();
             this.hlTween.start();
         } else {
             o.opacity = 255;
