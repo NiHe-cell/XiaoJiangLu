@@ -25,3 +25,7 @@ node_modules/
 # 验证脚本产出的截图（可随时用 node tools/smoke.js 重新生成）
 tools/*.png
 tools/.sim2/
+
+# AI 生成的美术草稿/样例图（体积大、可随时重生成，按主理人决定只保留规格文档不入库）
+# 对应的规格与评审记录仍在 docs/*.md，配图不随仓库走
+docs/art-samples/
