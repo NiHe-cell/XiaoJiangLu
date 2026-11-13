@@ -7,6 +7,7 @@ import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, heroCard, NavKey } from './Common';
 import { TXT } from '../data/TextConf';
+import { bannerClearanceDesign } from '../core/Ad';
 
 export function buildHomePanel (parent: Node): Node {
     const root = nd('Home', 720, 1280, parent);
@@ -16,6 +17,11 @@ export function buildHomePanel (parent: Node): Node {
     drawHomeBg(bg);
 
     topBar(root, TXT.appName);
+    const settings = nd('settings', 76, 60, root);
+    settings.setPosition(-250, 596);
+    box(settings, 10, C.btnGhost, C.panelLine, 2);
+    txt(settings, TXT.settings.title, FS.small, C.textSub, 76, 60);
+    settings.on(Node.EventType.TOUCH_END, () => Router.go('settings'));
     resBar(root);
 
     // 战力条
@@ -90,12 +96,16 @@ export function buildHomePanel (parent: Node): Node {
     boxAdd(goal, -276, -26, 552, 6, 3, new Color(60, 46, 33));
     boxAdd(goal, -276, -26, 184, 6, 3, C.green);
 
-    txt(root, TXT.home.hint, FS.small, C.textWeak, 580, 36, 0, -420);
+    const lift = bannerClearanceDesign();
+    const navY = -566 + lift;
+    let hintY = -420;
+    if (hintY - 18 < navY + 48 + 12) hintY = navY + 48 + 30;
+    txt(root, TXT.home.hint, FS.small, C.textWeak, 580, 36, 0, hintY);
 
     bottomNav(root, 'home', (k: NavKey) => {
         if (k === 'home') return;
         Router.go(k);
-    });
+    }, navY);
 
     return root;
 }

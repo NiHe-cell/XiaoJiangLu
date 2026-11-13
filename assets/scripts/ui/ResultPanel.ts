@@ -8,6 +8,7 @@ import { Fx } from '../core/Fx';
 import { getStageConf, STAGE_CONF } from '../data/StageConf';
 import { getItemConf } from '../data/ItemConf';
 import { TXT } from '../data/TextConf';
+import { showInterstitial, showRewarded } from '../core/Ad';
 
 export function buildResultPanel (parent: Node, param?: any): Node {
     const root = nd('Result', 720, 1280, parent);
@@ -70,18 +71,44 @@ export function buildResultPanel (parent: Node, param?: any): Node {
         btns.push({ t: TXT.common.retry, fn: () => Router.go('battle', { stageId }), primary: true });
         btns.push({ t: TXT.common.train, fn: () => Router.reset('hero') });
     }
+    const resume = livingEnemies(param && param.resume);
+    if (!win && resume.length) {
+        if (btns.length) btns[0].primary = false;
+        btns.unshift({
+            t: TXT.ad.revive,
+            primary: true,
+            fn: () => {
+                showRewarded(() => {
+                    Router.go('battle', { stageId, resume, free: true });
+                }, 'battle_revive');
+            },
+        });
+    }
     btns.push({ t: TXT.result.backHome, fn: () => Router.reset('home') });
 
+    const crowded = btns.length > 3;
     btns.forEach((b, i) => {
         const n = nd('rb' + i, 360, 84, root);
-        n.setPosition(0, -300 - i * 100);
+        n.setPosition(0, (crowded ? -250 : -300) - i * (crowded ? 88 : 100));
         box(n, 14, b.primary ? C.btnPrimary : C.btnGhost, b.primary ? C.gold : C.panelLine, 2);
         txt(n, b.t, FS.h1, b.primary ? C.text : C.textSub, 360, 44);
         n.on(Node.EventType.TOUCH_END, b.fn);
     });
 
     if (win && stars === 3) Fx.toast(TXT.result.perfect);
+    showInterstitial();
     return root;
+}
+
+function livingEnemies (list: any): { confId: number; slot: number; hp: number; maxHp: number }[] {
+    const out: { confId: number; slot: number; hp: number; maxHp: number }[] = [];
+    if (!list || !list.length) return out;
+    for (let i = 0; i < list.length; i++) {
+        const row = list[i];
+        if (!row || !(row.hp > 0) || !row.confId) continue;
+        out.push({ confId: row.confId, slot: row.slot || 0, hp: row.hp, maxHp: row.maxHp || row.hp });
+    }
+    return out;
 }
 
 function drawStar (n: Node, color: Color): void {

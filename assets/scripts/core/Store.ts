@@ -76,23 +76,34 @@ function defaultData (): PlayerData {
     return d;
 }
 
+export type LoadResult = 'fresh' | 'ok' | 'reset';
+
 class StoreClass {
     data: PlayerData = defaultData();
 
-    load (): void {
+    /**
+     * fresh：没有存档。ok：读到可用存档。reset：有内容但解析或结构失败，已写回新档。
+     * reset 必须由界面提示，不能静默进白屏。
+     */
+    load (): LoadResult {
         try {
             const raw = sys.localStorage.getItem(SAVE_KEY);
-            if (raw) {
-                const d = JSON.parse(raw) as PlayerData;
-                if (d && d.heroes && d.lineup) {
-                    this.data = this.migrate(d);
-                    return;
-                }
+            if (!raw) {
+                this.data = defaultData();
+                return 'fresh';
             }
+            const d = JSON.parse(raw) as PlayerData;
+            if (d && d.heroes && d.lineup) {
+                this.data = this.migrate(d);
+                return 'ok';
+            }
+            console.warn('[Store] 存档结构无效，已重置');
         } catch (e) {
-            console.warn('[Store] 读档失败，使用新档', e);
+            console.warn('[Store] 读档失败，已重置', e);
         }
         this.data = defaultData();
+        this.save();
+        return 'reset';
     }
 
     /** 老档兼容：补齐新增字段 */

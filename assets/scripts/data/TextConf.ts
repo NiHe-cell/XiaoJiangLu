@@ -9,7 +9,7 @@
  */
 
 export const TXT = {
-  appName: '骁将录：三国志',
+  appName: '骁将录',
   loading: '正在点兵…',
   tapStart: '点击进入',
 
@@ -219,7 +219,11 @@ export const TXT = {
     free: '免费',
     freeIn: '{n} 后免费',
     costJade: '将玉 {n}',
-    tenTip: '十连必出紫将',
+    tenTip: '十连保底紫或橙',
+    rateNote: '单次概率按卡池现算',
+    jadeLeft: '将玉余额 {n}',
+    extra: '再招一次',
+    extraSub: '广告追加，不耗将玉',
     result: '招募结果',
     gotHero: '得 {name}',
     gotFrag: '得 {name} 碎片',
@@ -354,6 +358,8 @@ export const TXT = {
     refreshLimit: '今天刷够了',
     soldOut: '这件卖完了',
     copyOk: '已复制',
+    saveReset: '存档损坏，已重置',
+    saveCleared: '存档已清除',
     netBusy: '手慢了，再点一次',
     comingSoon: '还没开，等一等',
   },
@@ -368,6 +374,43 @@ export const TXT = {
     stage: '这一章还没开',
     record: '还没有记录',
     bond: '还没凑出羁绊',
+  },
+
+  privacy: {
+    title: '隐私保护提示',
+    contract: '《用户隐私保护指引》',
+    body: '进度只存在本机。广告展示时，微信广告平台会处理设备信息。不收集昵称、头像和手机号。',
+    denyHint: '点「暂不同意」仍可继续游戏。激励视频会直接发奖，插屏和 Banner 不再出现。',
+    view: '查看指引',
+    agree: '同意',
+    deny: '暂不同意',
+    contractMiss: '指引未配置，已显示摘要',
+  },
+
+  settings: {
+    title: '设置',
+    privacy: '隐私政策',
+    agreement: '用户协议',
+    feedback: '意见反馈',
+    clear: '清除存档',
+    clearAsk: '清除本机存档？此操作不可恢复',
+    opened: '已打开隐私指引',
+    copy: '复制邮箱',
+    copyHint: '邮箱来自配置。复制前需同意隐私授权。',
+    emailEmpty: '客服邮箱尚未填写，暂无法联系。请补配置后再提审，不要使用虚构邮箱或微信。',
+    pending: '待填写',
+    copyDenied: '未授权，无法复制',
+    copyFail: '复制失败',
+    firstPage: '已经是第一页',
+    lastPage: '已经是最后一页',
+    saveResetBody: '本地存档读失败，已重置为新档。可以继续游戏。',
+  },
+
+  ad: {
+    sweepAsk: '看广告，本次奖励翻倍',
+    double: '广告双倍',
+    granted: '双倍已发放',
+    revive: '广告复活',
   },
 
   /** 竖屏单手场景的教学，每条 ≤ 14 字（8s 内读完） */

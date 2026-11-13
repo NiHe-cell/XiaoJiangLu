@@ -12,6 +12,10 @@ import { nd } from './core/Ui';
 import { Store } from './core/Store';
 import { Router } from './core/Router';
 import { Fx } from './core/Fx';
+import { hideBanner, showBanner } from './core/Ad';
+import { bootPrivacy } from './core/Privacy';
+import { bindAutoSave, login, onShareAppMessage } from './core/WxApi';
+import { TXT } from './data/TextConf';
 import { buildHomePanel } from './ui/HomePanel';
 import { buildStagePanel } from './ui/StagePanel';
 import { buildLineupPanel } from './ui/LineupPanel';
@@ -21,6 +25,9 @@ import { buildBagPanel } from './ui/BagPanel';
 import { buildShopPanel } from './ui/ShopPanel';
 import { buildBattlePanel } from './ui/BattlePanel';
 import { buildResultPanel } from './ui/ResultPanel';
+import { buildStartPanel } from './ui/StartPanel';
+import { buildSettingsPanel } from './ui/SettingsPanel';
+import { installPrivacyDialog } from './ui/PrivacyDialog';
 
 let booted = false;
 
@@ -37,14 +44,21 @@ function onSceneReady (): void {
     const sp = cam ? cam.getChildByName('SpriteSplash') : null;
     if (sp) sp.active = false;
 
-    Store.load();
+    const loaded = Store.load();
 
     const root = nd('UIRoot', 720, 1280, canvas);
     root.setPosition(0, 0);
 
     Fx.init(root);
+    installPrivacyDialog();
     Router.init(root);
+    Router.setListener((name) => {
+        if (name === 'home') showBanner();
+        else hideBanner();
+    });
 
+    Router.register('start', buildStartPanel);
+    Router.register('settings', buildSettingsPanel);
     Router.register('home', buildHomePanel);
     Router.register('stage', buildStagePanel);
     Router.register('lineup', buildLineupPanel);
@@ -55,7 +69,14 @@ function onSceneReady (): void {
     Router.register('battle', buildBattlePanel);
     Router.register('result', buildResultPanel);
 
-    Router.go('home');
+    Router.go('start');
+    bootPrivacy((agreed) => {
+        if (!agreed) return;
+        login();
+        onShareAppMessage();
+    });
+    bindAutoSave(() => Store.save());
+    if (loaded === 'reset') Fx.notice(TXT.settings.saveResetBody);
 }
 
 // 场景稍后加载：等事件
