@@ -59,9 +59,9 @@ export function resBar (parent: Node, y = 534): { node: Node; refresh: () => voi
 export type NavKey = 'home' | 'lineup' | 'hero' | 'recruit' | 'bag' | 'shop';
 
 /** 底部导航（拇指热区） */
-export function bottomNav (parent: Node, current: NavKey, onNav: (k: NavKey) => void): Node {
+export function bottomNav (parent: Node, current: NavKey, onNav: (k: NavKey) => void, y = -566): Node {
     const n = nd('nav', 700, 96, parent);
-    n.setPosition(0, -566);
+    n.setPosition(0, y);
     box(n, 14, new Color(24, 18, 13, 235), C.panelLine, 2);
 
     const items: { k: NavKey; t: string }[] = [

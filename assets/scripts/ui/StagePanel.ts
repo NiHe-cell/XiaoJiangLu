@@ -8,6 +8,7 @@ import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, NavKey } from './Common';
 import { CHAPTER_CONF, STAGE_CONF, StageConf } from '../data/StageConf';
 import { TXT } from '../data/TextConf';
+import { showRewarded } from '../core/Ad';
 
 const STAMINA_COST = 6;
 
@@ -132,6 +133,7 @@ export function buildStagePanel (parent: Node, param?: any): Node {
         Store.save();
         res.refresh(); refreshTip();
         Fx.toast(`扫荡 ${n} 关：银币 +${silver}，经验 +${exp}`);
+        offerDouble(exp, silver, () => { res.refresh(); refreshTip(); });
     });
 
     bottomNav(root, 'home', (k: NavKey) => {
@@ -180,6 +182,20 @@ function doSweep (s: StageConf, refresh?: () => void): void {
     Store.save();
     if (refresh) refresh();
     Fx.toast(`扫荡完成：银币 +${r.silver}，经验 +${r.exp}`);
+    offerDouble(r.exp, r.silver, refresh);
+}
+
+function offerDouble (exp: number, silver: number, refresh?: () => void): void {
+    if (exp <= 0 && silver <= 0) return;
+    Fx.confirm(TXT.ad.sweepAsk, () => {
+        showRewarded(() => {
+            Store.addPlayerExp(exp);
+            Store.addSilver(silver);
+            Store.save();
+            if (refresh) refresh();
+            Fx.toast(TXT.ad.granted);
+        }, 'sweep_double');
+    }, TXT.ad.double, TXT.common.cancel);
 }
 
 export { STAMINA_COST, rewardOf, applyReward };

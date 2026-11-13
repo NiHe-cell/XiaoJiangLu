@@ -2,6 +2,7 @@
 import { Node, Color, Vec3, UIOpacity, tween, Label, HorizontalTextAlignment, VerticalTextAlignment } from 'cc';
 import { nd, txt, box, gfx, mask } from './Ui';
 import { C, FS } from './Theme';
+import { TXT } from '../data/TextConf';
 
 class FxClass {
     private root: Node | null = null;
@@ -11,6 +12,30 @@ class FxClass {
         this.root = root;
         this.toastLayer = nd('toastLayer', 720, 1280, root);
         this.toastLayer.setSiblingIndex(9999);
+    }
+
+    /** 弹窗挂载点。隐私授权和存档提示都盖在界面之上。 */
+    overlay (): Node | null {
+        return this.root;
+    }
+
+    /** 单按钮提示。用于存档重置这类必须让玩家看见的结果。 */
+    notice (msg: string, onOk?: () => void): void {
+        if (!this.root) return;
+        const m = mask(this.root, 180);
+        m.setSiblingIndex(9900);
+        const p = nd('notice', 520, 280, m);
+        p.setPosition(0, 0);
+        box(p, 16, C.panel, C.gold, 3);
+        txt(p, msg, FS.body, C.text, 460, 120, 0, 40, HorizontalTextAlignment.CENTER, true);
+        const yes = nd('btnOk', 240, 72, p);
+        yes.setPosition(0, -70);
+        box(yes, 12, C.btn, C.gold, 2);
+        txt(yes, TXT.common.gotIt, FS.h2, C.textDark, 240, 72);
+        yes.on(Node.EventType.TOUCH_END, () => {
+            m.destroy();
+            if (onOk) onOk();
+        });
     }
 
     /** 轻提示（2 秒消失，多条纵向堆叠） */

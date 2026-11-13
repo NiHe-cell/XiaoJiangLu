@@ -6,26 +6,18 @@ import { Store, newHeroState } from '../core/Store';
 import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, heroCard, NavKey, hexColor } from './Common';
-import { HERO_CONF, getHeroConf } from '../data/HeroConf';
+import { getHeroConf } from '../data/HeroConf';
 import { ITEM_CONF } from '../data/ItemConf';
 import { TXT } from '../data/TextConf';
-
-const COST_ONE = 100;
-const COST_TEN = 900;
-
-/** 按品质权重抽一名武将（主角不进池） */
-function rollHero (): number {
-    const pool = HERO_CONF.filter((h) => h.id !== HERO_CONF[0].id);
-    const w: { [q: number]: number } = { 1: 56, 2: 28, 3: 12, 4: 4 };
-    let total = 0;
-    for (const h of pool) total += w[h.quality] || 1;
-    let r = Math.random() * total;
-    for (const h of pool) {
-        r -= w[h.quality] || 1;
-        if (r <= 0) return h.id;
-    }
-    return pool[0].id;
-}
+import { showRewarded } from '../core/Ad';
+import {
+    RECRUIT_COST_ONE,
+    RECRUIT_COST_TEN,
+    formatRatePercent,
+    qualityRates,
+    rollPityHero,
+    rollRecruitHero,
+} from '../data/RecruitConf';
 
 export function buildRecruitPanel (parent: Node): Node {
     const root = nd('Recruit', 720, 1280, parent);
@@ -44,64 +36,83 @@ export function buildRecruitPanel (parent: Node): Node {
     g.lineTo(220, -190); g.lineTo(-220, -190); g.close(); g.fill();
     txt(stage, TXT.recruit.stage, FS.title, C.gold, 400, 50, 0, 100);
     txt(stage, TXT.recruit.slogan, FS.small, C.textSub, 500, 34, 0, 44);
-    // 品质概率条
-    const probs: { q: number; p: string }[] = [
-        { q: 4, p: '红 4%' }, { q: 3, p: '橙 12%' }, { q: 2, p: '紫 28%' }, { q: 1, p: '蓝 56%' },
-    ];
-    probs.forEach((p, i) => {
+    // 品质概率由「在池武将 × 品质权重」现算，不手填百分比。
+    const rated = qualityRates();
+    const labels = formatRatePercent(rated.rates);
+    rated.rates.forEach((p, i) => {
         // 4 枚芯片按「宽140 + 步长146」排：总跨度 578，边缘 ±289 落在安全区 ±290 内。
-        // 原「宽150 + 步长144」跨度 582，最右一枚右缘到 292，会戳出面板边框。
         const b = nd('p' + i, 140, 54, stage);
-        b.setPosition(-219 + i * 146, -40);
-        box(b, 10, qualityColor(p.q), C.textDark, 2);
-        txt(b, p.p, FS.small, C.textDark, 130, 40);
+        b.setPosition(-219 + i * 146, -20);
+        box(b, 10, qualityColor(p.quality), C.textDark, 2);
+        txt(b, QUALITY_NAME[p.quality], FS.tiny, C.textDark, 130, 22, 0, 10);
+        txt(b, labels[i], FS.tiny, C.textDark, 130, 22, 0, -12);
     });
-    txt(stage, TXT.recruit.tenTip, FS.small, C.green, 560, 34, 0, -110);
-    txt(stage, `将玉余额 ${Store.data.jade}`, FS.small, C.q3, 560, 34, 0, -150);
+    txt(stage, TXT.recruit.rateNote, FS.tiny, C.textWeak, 540, 28, 0, -62);
+    txt(stage, TXT.recruit.tenTip, FS.small, C.green, 560, 34, 0, -100);
+    const jadeL = txt(stage, '', FS.small, C.q3, 560, 34, 0, -140);
+    const refreshJade = (): void => {
+        jadeL.string = TXT.recruit.jadeLeft.replace('{n}', String(Store.data.jade));
+    };
+    refreshJade();
 
     // 按钮
     const one = nd('one', 320, 96, root);
     one.setPosition(0, 20);
     box(one, 16, C.btn, C.gold, 3);
     txt(one, TXT.recruit.onceLong, FS.h1, C.textDark, 320, 40, 0, 12);
-    txt(one, `消耗将玉 ${COST_ONE}`, FS.small, new Color(255, 230, 190), 320, 32, 0, -22);
+    txt(one, `消耗将玉 ${RECRUIT_COST_ONE}`, FS.small, new Color(255, 230, 190), 320, 32, 0, -22);
+    const refreshAll = (): void => { res.refresh(); refreshJade(); };
     one.on(Node.EventType.TOUCH_END, () => {
-        if (Store.data.jade < COST_ONE) { Fx.toast(TXT.toast.noJadeHint); return; }
-        Store.addJade(-COST_ONE);
+        if (Store.data.jade < RECRUIT_COST_ONE) { Fx.toast(TXT.toast.noJadeHint); return; }
+        Store.addJade(-RECRUIT_COST_ONE);
         Store.data.recruited += 1;
-        const ids = [rollHero()];
+        const ids = [rollRecruitHero()];
         const got = grant(ids);
         Store.save();
-        res.refresh();
-        showResult(root, ids, got, res.refresh);
+        refreshAll();
+        showResult(root, ids, got, refreshAll);
     });
 
     const ten = nd('ten', 320, 96, root);
     ten.setPosition(0, -96);
     box(ten, 16, C.btnPrimary, C.gold, 3);
     txt(ten, TXT.recruit.tenLong, FS.h1, C.text, 320, 40, 0, 12);
-    txt(ten, `消耗将玉 ${COST_TEN}（省 100）`, FS.small, new Color(255, 230, 190), 320, 32, 0, -22);
+    txt(ten, `消耗将玉 ${RECRUIT_COST_TEN}（省 100）`, FS.small, new Color(255, 230, 190), 320, 32, 0, -22);
     ten.on(Node.EventType.TOUCH_END, () => {
-        if (Store.data.jade < COST_TEN) { Fx.toast(TXT.toast.noJadeHint); return; }
-        Store.addJade(-COST_TEN);
+        if (Store.data.jade < RECRUIT_COST_TEN) { Fx.toast(TXT.toast.noJadeHint); return; }
+        Store.addJade(-RECRUIT_COST_TEN);
         Store.data.recruited += 10;
         const ids: number[] = [];
-        for (let i = 0; i < 10; i++) ids.push(rollHero());
-        // 保底：无紫及以上则把最后一个替换为紫/橙
-        if (!ids.some((id) => getHeroConf(id).quality >= 2)) {
-            const up = HERO_CONF.filter((h) => h.quality === 2 || h.quality === 3);
-            ids[9] = up[Math.floor(Math.random() * up.length)].id;
-        }
+        for (let i = 0; i < 10; i++) ids.push(rollRecruitHero());
+        // 保底不计入上面的单次概率：十连若无紫及以上，末位改为紫或橙。
+        if (!ids.some((id) => getHeroConf(id).quality >= 2)) ids[9] = rollPityHero();
         const got = grant(ids);
         Store.save();
-        res.refresh();
-        showResult(root, ids, got, res.refresh);
+        refreshAll();
+        showResult(root, ids, got, refreshAll);
     });
 
-    txt(root, TXT.recruit.noPay, FS.tiny, C.textWeak, 580, 32, 0, -200);
+    const extra = nd('extra', 320, 64, root);
+    extra.setPosition(0, -200);
+    box(extra, 12, C.panelLight, C.goldDim, 2);
+    txt(extra, TXT.recruit.extra, FS.h2, C.text, 320, 32, 0, 10);
+    txt(extra, TXT.recruit.extraSub, FS.tiny, C.textSub, 320, 24, 0, -16);
+    extra.on(Node.EventType.TOUCH_END, () => {
+        showRewarded(() => {
+            const id = rollRecruitHero();
+            if (!id) { Fx.toast(TXT.toast.comingSoon); return; }
+            Store.data.recruited += 1;
+            const got = grant([id]);
+            Store.save();
+            refreshAll();
+            showResult(root, [id], got, refreshAll);
+        }, 'extra_recruit');
+    });
+
+    txt(root, TXT.recruit.noPay, FS.tiny, C.textWeak, 580, 32, 0, -260);
 
     const pity = nd('pity', 580, 90, root);
-    pity.setPosition(0, -320);
+    pity.setPosition(0, -380);
     box(pity, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
     txt(pity, `累计招募 ${Store.data.recruited} 次`, FS.small, C.textSub, 400, 34, -110, 18);
     txt(pity, TXT.recruit.repeatLong, FS.tiny, C.textWeak, 620, 30, 0, -20);

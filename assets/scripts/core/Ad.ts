@@ -11,7 +11,8 @@
  * ★ 所有 wx 调用只走 `getWx()`，本文件不直接引用 `wx` 标识符（避免重复 declare 与未定义崩溃）。
  */
 import { sys } from 'cc';
-import { getWx, getWindowInfo } from './WxApi';
+import { DESIGN_H, getWx, getWindowInfo, isWx } from './WxApi';
+import { ensurePrivacy, privacyAgreed, privacyBlocksAds } from './Privacy';
 import {
     AD_ENABLED,
     REWARDED_CONF,
@@ -127,6 +128,18 @@ function settleOnce (slot: RewardedSlot, ok: boolean): void {
  *            不传取配置表第一项。
  */
 export function showRewarded (cb: (ok: boolean) => void, key?: string): void {
+    ensurePrivacy((agreed) => {
+        if (!agreed) {
+            console.log('[Ad] 隐私未授权，激励视频降级发放（key=' + (key || 'default') + '）');
+            if (!cb) return;
+            try { cb(true); } catch (e) { console.warn('[Ad] showRewarded 回调异常', e); }
+            return;
+        }
+        showRewardedAfterPrivacy(cb, key);
+    });
+}
+
+function showRewardedAfterPrivacy (cb: (ok: boolean) => void, key?: string): void {
     const done = (ok: boolean): void => {
         if (!cb) return;
         try { cb(ok); } catch (e) { console.warn('[Ad] showRewarded 回调异常', e); }
@@ -225,6 +238,15 @@ let lastInterstitialTs = 0;
  * 调用方不需要处理失败：插屏本就是可跳过的变现位。
  */
 export function showInterstitial (): boolean {
+    if (privacyBlocksAds()) return false;
+    if (isWx() && !privacyAgreed()) {
+        ensurePrivacy((ok) => { if (ok) showInterstitialNow(); });
+        return false;
+    }
+    return showInterstitialNow();
+}
+
+function showInterstitialNow (): boolean {
     if (!AD_ENABLED || !INTERSTITIAL_CONF.adUnitId) return false;
     if (!getWx()) return false;
 
@@ -284,8 +306,31 @@ function layoutBanner (h?: number): void {
     }
 }
 
-/** 展示 Banner。未配置/非 wx/创建失败一律静默（Banner 不是流程节点，失败不提示）。 */
+/**
+ * 设计坐标里要让给底部 Banner 的高度。
+ * 未配置、非微信、或玩家已拒绝隐私时返回 0，避免空出一条没有广告的死区。
+ * Banner 贴在屏幕底边，主城导航会上移这段高度，避免盖住 x ∈ [-290, 290] 的操作区。
+ */
+export function bannerClearanceDesign (): number {
+    if (!AD_ENABLED || !BANNER_CONF.adUnitId || !getWx()) return 0;
+    if (privacyBlocksAds()) return 0;
+    const info = getWindowInfo();
+    const winH = info.windowHeight > 0 ? info.windowHeight : DESIGN_H;
+    const design = Math.round((130 / winH) * DESIGN_H);
+    if (!isFinite(design) || design <= 0) return 120;
+    return Math.max(96, Math.min(180, design));
+}
+
+/** 展示 Banner。未配置/非 wx/未授权/创建失败一律静默。 */
 export function showBanner (): void {
+    if (privacyBlocksAds()) return;
+    ensurePrivacy((ok) => {
+        if (!ok) return;
+        showBannerNow();
+    });
+}
+
+function showBannerNow (): void {
     if (!AD_ENABLED || !BANNER_CONF.adUnitId) return;
     if (!getWx()) return;
     try {

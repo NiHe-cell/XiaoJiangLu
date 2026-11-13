@@ -47,8 +47,14 @@ export class BattleCtrl extends Component {
     private comboBtn: Node | null = null;
     private deadAllies = 0;
     private field: Node | null = null;
+    private resume: { confId: number; slot: number; hp: number; maxHp: number }[] | null = null;
+    private freeEntry = false;
 
-    setup (stageId: number): void { this.stageId = stageId; }
+    setup (stageId: number, extra?: { resume?: { confId: number; slot: number; hp: number; maxHp: number }[] | null; free?: boolean }): void {
+        this.stageId = stageId;
+        this.resume = extra && extra.resume && extra.resume.length ? extra.resume : null;
+        this.freeEntry = !!(extra && extra.free);
+    }
 
     start (): void {
         const s = getStageConf(this.stageId);
@@ -88,26 +94,45 @@ export class BattleCtrl extends Component {
         });
         const level = s ? s.enemyLevel : 1;
         const pool = s ? s.enemyIds : [];
+        const resume = this.resume;
+        if (resume) {
+            for (let i = 0; i < resume.length; i++) {
+                const e = resume[i];
+                if (!e || e.hp <= 0) continue;
+                const a = Store.enemyAttr(e.confId, level);
+                const c = getHeroConf(e.confId);
+                const maxHp = e.maxHp > 0 ? e.maxHp : a.hp;
+                const hp = Math.max(1, Math.min(maxHp, e.hp));
+                units.push({
+                    uid: uid++, side: 1, confId: e.confId, slot: e.slot,
+                    hp, maxHp, atk: a.atk, pdef: a.pdef, mdef: a.mdef, speed: a.speed,
+                    rage: 0, role: c.role, skillId: c.skillId, comboSkillId: 0, bondId: 0, alive: true, buffs: [],
+                });
+            }
+        }
         // 敌人数走 BAL.stageEnemyCountFor：在关卡配置基础上按「我方上阵人数」封顶。
         // 直接照搬 enemyIds 会出现新手 3 人打 4 人 —— 裴策实测 107/108/203/204/207/208 胜率 0%。
         // 再叠一层「同武将最多复刻一次」：与 tools/sim.js 的 enemyCount() 同口径，
         // 否则 101 这种只配了 1 个敌将 id 的关卡会刷出 3 个一模一样的克隆体，
         // 且运行时结果对不上裴策那 1920 场带此封顶的实证数据。
-        const enemyCount = pool.length && s
-            ? Math.min(
-                BAL.stageEnemyCountFor(s.chapter, s.index - 1, Store.data.lineup.length),
-                Math.max(1, pool.length * 2),
-            )
-            : 0;
-        for (let i = 0; i < enemyCount; i++) {
-            const confId = pool[i % pool.length];
-            const a = Store.enemyAttr(confId, level);
-            const c = getHeroConf(confId);
-            units.push({
-                uid: uid++, side: 1, confId, slot: i,
-                hp: a.hp, maxHp: a.hp, atk: a.atk, pdef: a.pdef, mdef: a.mdef, speed: a.speed,
-                rage: 0, role: c.role, skillId: c.skillId, comboSkillId: 0, bondId: 0, alive: true, buffs: [],
-            });
+        // 广告复活会带上残血敌方；若快照里没有活着的敌人，退回正常刷怪，避免开场即结束。
+        if (!units.some((u) => u.side === 1)) {
+            const enemyCount = pool.length && s
+                ? Math.min(
+                    BAL.stageEnemyCountFor(s.chapter, s.index - 1, Store.data.lineup.length),
+                    Math.max(1, pool.length * 2),
+                )
+                : 0;
+            for (let i = 0; i < enemyCount; i++) {
+                const confId = pool[i % pool.length];
+                const a = Store.enemyAttr(confId, level);
+                const c = getHeroConf(confId);
+                units.push({
+                    uid: uid++, side: 1, confId, slot: i,
+                    hp: a.hp, maxHp: a.hp, atk: a.atk, pdef: a.pdef, mdef: a.mdef, speed: a.speed,
+                    rage: 0, role: c.role, skillId: c.skillId, comboSkillId: 0, bondId: 0, alive: true, buffs: [],
+                });
+            }
         }
 
         this.core = new BattleCore(units, this.stageId * 7919 + 13);
@@ -411,7 +436,7 @@ export class BattleCtrl extends Component {
         if (this.state === 'end') return;
         this.state = 'end';
         const w = this.core ? this.core.winner() : 1;
-        Store.addStamina(-BAL.staminaPerStage);
+        if (!this.freeEntry) Store.addStamina(-BAL.staminaPerStage);
         const stars = w === 0 ? BAL.calcStars(this.core ? this.core.round : 0, this.deadAllies) : 0;
         const s = getStageConf(this.stageId);
         const chapter = s ? s.chapter : 1;
@@ -433,8 +458,21 @@ export class BattleCtrl extends Component {
             Store.save();
         }
         const rounds = this.core ? this.core.round : 0;
+        const resume: { confId: number; slot: number; hp: number; maxHp: number }[] = [];
+        if (w !== 0 && this.core) {
+            for (let i = 0; i < this.core.units.length; i++) {
+                const u = this.core.units[i];
+                if (u.side !== 1 || u.hp <= 0) continue;
+                resume.push({ confId: u.confId, slot: u.slot, hp: u.hp, maxHp: u.maxHp });
+            }
+        }
         this.scheduleOnce(() => {
-            Router.go('result', { stageId: this.stageId, win: w === 0, stars, reward, bonus, first, rounds });
+            Router.go('result', {
+                stageId: this.stageId,
+                win: w === 0,
+                stars, reward, bonus, first, rounds,
+                resume: w === 0 ? null : resume,
+            });
         }, this.d(0.9));
     }
 }
@@ -444,6 +482,10 @@ export function buildBattlePanel (parent: Node, param?: any): Node {
     root.setPosition(0, 0);
     const ctrl = root.addComponent(BattleCtrl)!;
     // 兜底必须给一个真实存在的关卡 id：旧值 1 在 StageConf 里查不到（关卡从 101 起）
-    ctrl.setup(param && param.stageId ? param.stageId : (STAGE_CONF[0] ? STAGE_CONF[0].id : 101));
+    const stageId = param && param.stageId ? param.stageId : (STAGE_CONF[0] ? STAGE_CONF[0].id : 101);
+    ctrl.setup(stageId, {
+        resume: param && param.resume ? param.resume : null,
+        free: !!(param && param.free),
+    });
     return root;
 }

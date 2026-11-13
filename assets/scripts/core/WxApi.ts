@@ -428,3 +428,142 @@ export function setUserCloudStorage (kv: KVData[], cb?: (ok: boolean) => void): 
         done(false);
     }
 }
+
+// ───────────────────────── 隐私授权（基础库 ≥ 2.32.3） ─────────────────────────
+
+/**
+ * 小游戏隐私接口。不要往 game.json 写 __usePrivacyCheck__（那是小程序 app.json 字段）。
+ * 同意须来自玩家点击后再 resolve；拒绝必须让调用方降级，不能把接口挂死。
+ */
+export interface PrivacyResolveArg {
+    event: 'agree' | 'disagree' | 'exposureAuthorization';
+    buttonId?: string;
+}
+
+export type PrivacyResolve = (arg: PrivacyResolveArg) => void;
+
+export type PrivacyListener = (resolve: PrivacyResolve, referrer: string) => void;
+
+let privacyListener: PrivacyListener | null = null;
+let privacyListenerInstalled = false;
+
+/** 覆盖式注册的安全包装：重复调用只更新回调，wx 侧只注册一次。 */
+export function onNeedPrivacyAuthorization (handler: PrivacyListener): void {
+    privacyListener = handler;
+    const w = getWx();
+    if (!w || typeof w.onNeedPrivacyAuthorization !== 'function') return;
+    if (privacyListenerInstalled) return;
+    try {
+        w.onNeedPrivacyAuthorization((resolve: PrivacyResolve, info?: any) => {
+            const referrer = info && info.referrer ? String(info.referrer) : '';
+            const fn = privacyListener;
+            if (!fn) {
+                try { resolve({ event: 'disagree' }); } catch (e) { /* 无 UI 时不能挂起 */ }
+                return;
+            }
+            try {
+                fn(resolve, referrer);
+            } catch (e) {
+                console.warn('[WxApi] 隐私监听异常，按拒绝处理', e);
+                try { resolve({ event: 'disagree' }); } catch (e2) { /* 静默 */ }
+            }
+        });
+        privacyListenerInstalled = true;
+    } catch (e) {
+        console.warn('[WxApi] onNeedPrivacyAuthorization 注册失败', e);
+    }
+}
+
+/** 查询是否仍需隐私授权。非 wx / 低版本 / 失败都视为「不拦截游戏」。 */
+export function getPrivacySetting (cb: (needAuthorization: boolean, privacyContractName: string) => void): void {
+    const done = (need: boolean, name: string): void => {
+        try { cb(need, name); } catch (e) { console.warn('[WxApi] getPrivacySetting 回调异常', e); }
+    };
+    try {
+        const w = getWx();
+        if (!w || typeof w.getPrivacySetting !== 'function') { done(false, ''); return; }
+        w.getPrivacySetting({
+            success: (res: any) => {
+                const name = res && res.privacyContractName ? String(res.privacyContractName) : '';
+                done(!!(res && res.needAuthorization), name);
+            },
+            fail: (res: any) => {
+                console.warn('[WxApi] getPrivacySetting 失败（不阻断）', res);
+                done(false, '');
+            },
+        });
+    } catch (e) {
+        console.warn('[WxApi] getPrivacySetting 异常（不阻断）', e);
+        done(false, '');
+    }
+}
+
+/**
+ * 主动触发隐私授权。
+ * 无接口时回调 true（没有可授权的隐私接口，游戏继续）。
+ * 用户拒绝回调 false，调用方必须降级，不得中断流程。
+ */
+export function requirePrivacyAuthorize (cb: (agreed: boolean) => void): void {
+    const done = (ok: boolean): void => {
+        try { cb(ok); } catch (e) { console.warn('[WxApi] requirePrivacyAuthorize 回调异常', e); }
+    };
+    try {
+        const w = getWx();
+        if (!w || typeof w.requirePrivacyAuthorize !== 'function') { done(true); return; }
+        w.requirePrivacyAuthorize({
+            success: () => done(true),
+            fail: (res: any) => {
+                console.warn('[WxApi] requirePrivacyAuthorize 未同意（广告降级，游戏继续）', res);
+                done(false);
+            },
+        });
+    } catch (e) {
+        console.warn('[WxApi] requirePrivacyAuthorize 异常（按未同意降级）', e);
+        done(false);
+    }
+}
+
+/** 打开 mp 后台配置的隐私保护指引。打不开回调 false，由界面改走游戏内摘要。 */
+export function openPrivacyContract (cb?: (ok: boolean) => void): void {
+    const done = (ok: boolean): void => {
+        if (!cb) return;
+        try { cb(ok); } catch (e) { console.warn('[WxApi] openPrivacyContract 回调异常', e); }
+    };
+    try {
+        const w = getWx();
+        if (!w || typeof w.openPrivacyContract !== 'function') { done(false); return; }
+        w.openPrivacyContract({
+            success: () => done(true),
+            fail: (res: any) => {
+                console.warn('[WxApi] openPrivacyContract 失败', res);
+                done(false);
+            },
+        });
+    } catch (e) {
+        console.warn('[WxApi] openPrivacyContract 异常', e);
+        done(false);
+    }
+}
+
+/** 复制文本。这是隐私接口，调用方应先完成授权；失败只回调 false。 */
+export function setClipboardData (text: string, cb?: (ok: boolean) => void): void {
+    const done = (ok: boolean): void => {
+        if (!cb) return;
+        try { cb(ok); } catch (e) { console.warn('[WxApi] setClipboardData 回调异常', e); }
+    };
+    try {
+        const w = getWx();
+        if (!w || typeof w.setClipboardData !== 'function') { done(false); return; }
+        w.setClipboardData({
+            data: text,
+            success: () => done(true),
+            fail: (res: any) => {
+                console.warn('[WxApi] setClipboardData 失败', res);
+                done(false);
+            },
+        });
+    } catch (e) {
+        console.warn('[WxApi] setClipboardData 异常', e);
+        done(false);
+    }
+}

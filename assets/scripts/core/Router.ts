@@ -9,6 +9,17 @@ class RouterClass {
     private root: Node | null = null;
     private builders: { [k: string]: PanelBuilder } = {};
     private stack: Frame[] = [];
+    private listener: ((name: string) => void) | null = null;
+
+    /** 面板切换后通知（用于 Banner 只留在主城，避免盖住核心操作区） */
+    setListener (fn: (name: string) => void): void {
+        this.listener = fn;
+    }
+
+    private emit (): void {
+        if (!this.listener) return;
+        try { this.listener(this.current); } catch (e) { console.warn('[Router] listener 异常', e); }
+    }
 
     init (root: Node): void {
         this.root = root;
@@ -43,6 +54,7 @@ class RouterClass {
         }
         const node = this.builders[name](this.root, param);
         this.stack.push({ name, node, param });
+        this.emit();
     }
 
     /** 返回上一界面（重建） */
@@ -53,6 +65,7 @@ class RouterClass {
         const prev = this.stack[this.stack.length - 1];
         const node = this.builders[prev.name](this.root!, prev.param);
         prev.node = node;
+        this.emit();
     }
 
     /** 回到指定界面（清空其上的栈） */
@@ -67,6 +80,7 @@ class RouterClass {
         top.node.destroy();
         const node = this.builders[name](this.root!, top.param);
         top.node = node;
+        this.emit();
     }
 
     /** 清空全部栈并重建（回主界面用） */
