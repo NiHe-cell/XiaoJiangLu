@@ -1,10 +1,11 @@
 /** 通用 UI 零件：顶部资源条 / 底部导航 / 武将卡 / 类型纹样 */
-import { Node, Color, Graphics, Label, HorizontalTextAlignment, VerticalTextAlignment } from 'cc';
+import { Node, Color, Graphics, Label, UITransform, HorizontalTextAlignment, VerticalTextAlignment } from 'cc';
 import { nd, box, boxAdd, boxAddLine, circleAdd, triAdd, lineAdd, txt, gfx } from '../core/Ui';
 import { C, FS, qualityColor, campColor, QUALITY_NAME, CAMP_NAME, ROLE_NAME } from '../core/Theme';
 import { Store } from '../core/Store';
 import { getHeroConf } from '../data/HeroConf';
 import { TXT } from '../data/TextConf';
+import { mountHeroPortrait } from './HeroSprite';
 
 /** 顶部条：返回 + 标题 + 主公等级；返回 refresh() */
 export function topBar (parent: Node, title: string, back?: () => void): { node: Node; refresh: () => void } {
@@ -84,6 +85,19 @@ export function bottomNav (parent: Node, current: NavKey, onNav: (k: NavKey) => 
     return n;
 }
 
+/**
+ * 阵营角标再画一层在子节点上。
+ * 像素头像是后加的子节点，会盖住父节点 Graphics 上的三角；这一层零点击面积，只负责把色+形状留在头像上面。
+ * 贴图没加载成功时，父节点上原来的三角仍然可见。
+ */
+export function pinCamp (parent: Node, x: number, y: number, r: number, camp: number): void {
+    const pui = parent.getComponent(UITransform);
+    const n = nd('campPin', pui ? pui.width : 0, pui ? pui.height : 0, parent);
+    const ui = n.getComponent(UITransform);
+    if (ui) ui.hitTest = () => false;
+    triAdd(n, x, y, r, campColor(camp), 'br');
+}
+
 /** 类型纹样（Graphics 可画） */
 export function roleGlyph (g: Graphics, role: number, cx: number, cy: number, s: number, col: Color): void {
     g.lineWidth = 3;
@@ -117,7 +131,7 @@ export interface CardOpts {
     onClick?: () => void; showLevel?: boolean; showStar?: boolean; compact?: boolean;
 }
 
-/** 武将占位卡（零资源：色块 + 阵营纹样 + 类型纹样 + 文字） */
+/** 武将卡。色块、阵营三角和类型纹样始终先画好；像素头像盖上来，加载失败时这些还在。品质色只作描边和角标。 */
 export function heroCard (parent: Node, o: CardOpts): Node {
     const w = o.w ?? 112;
     const h = o.h ?? 146;
@@ -139,8 +153,13 @@ export function heroCard (parent: Node, o: CardOpts): Node {
     roleGlyph(gfx(n), c.role, 0, 46 - h / 2 + ih / 2 - 2, Math.min(w, ih) * 0.4, new Color(255, 255, 255, 220));
     // 名字（品质色 100%）
     txt(n, c.name, o.compact ? FS.tiny : FS.small, qc, w - 8, 26, 0, -h / 2 + 26);
-    // 品质角标
+    // 品质角标：Graphics 上留一份作贴图失败时的底，子节点再留一份，避免头像盖住角标。
     boxAdd(n, w / 2 - 8 - 30, h / 2 - 8 - 22, 30, 22, 6, qc);
+    const qChip = nd('qChip', 30, 22, n);
+    qChip.setPosition(w / 2 - 8 - 15, h / 2 - 8 - 11);
+    const qUi = qChip.getComponent(UITransform);
+    if (qUi) qUi.hitTest = () => false;
+    box(qChip, 6, qc);
     txt(n, QUALITY_NAME[c.quality], FS.tiny, C.textDark, 30, 22, w / 2 - 8 - 15, h / 2 - 8 - 11);
     // 等级 / 星级
     if (o.showLevel !== false && st) {
@@ -149,6 +168,16 @@ export function heroCard (parent: Node, o: CardOpts): Node {
     }
     if (o.showStar && st) {
         txt(n, starStr(st.star), FS.tiny, C.gold, w - 56, 22, w / 2 - 8 - (w - 56) / 2 - 26, -h / 2 + 13);
+    }
+
+    // 头像贴在色块之上、文字和品质角标之下。加载失败时节点空白，色块和纹样还在。
+    // 阵营三角夹在头像和文字之间：盖住头像的一角，但不盖名字。
+    const face = mountHeroPortrait(n, o.confId, ax + (w - 16) / 2, ay + (ih - 8) / 2, w - 16, ih - 8);
+    if (face) {
+        face.setSiblingIndex(0);
+        pinCamp(n, ax + 2, ay + ih - 10, 22, c.camp);
+        const pin = n.getChildByName('campPin');
+        if (pin) pin.setSiblingIndex(1);
     }
 
     if (o.onClick) n.on(Node.EventType.TOUCH_END, o.onClick);

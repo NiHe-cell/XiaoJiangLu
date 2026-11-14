@@ -8,7 +8,8 @@ import { C, FS, campColor, qualityColor } from '../core/Theme';
 import { Store } from '../core/Store';
 import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
-import { topBar, roleGlyph, hexColor } from './Common';
+import { topBar, roleGlyph, hexColor, pinCamp } from './Common';
+import { mountHeroPortrait, mountBattleActor, BattleActor } from './HeroSprite';
 import { getHeroConf } from '../data/HeroConf';
 import { getSkillConf } from '../data/SkillConf';
 import { BOND_CONF } from '../data/BondConf';
@@ -28,6 +29,7 @@ const ALLY_ROW = [-2, -202];
 interface View {
     node: Node; nameL: Label; hp: (v: number) => void; rage: ((v: number) => void) | null;
     x: number; y: number;
+    actor: BattleActor | null;
 }
 
 @ccclass('BattleCtrl')
@@ -188,6 +190,13 @@ export class BattleCtrl extends Component {
         const rg = nd('rg', 64, 8, b);
         rg.setPosition(0, -28);
         this.skillBars[u.uid] = this.mkBar(rg, 64, 8, C.rageFill, C.rageBack);
+        const face = mountHeroPortrait(b, u.confId, 0, 34, 64, 56);
+        if (face) {
+            face.setSiblingIndex(0);
+            pinCamp(b, -38, 34, 18, c.camp);
+            const pin = b.getChildByName('campPin');
+            if (pin) pin.setSiblingIndex(1);
+        }
         b.on(Node.EventType.TOUCH_END, () => {
             if (this.state === 'end') return;
             if (this.state !== 'wait') { Fx.toast(TXT.battle.notYourTurn); return; }
@@ -244,7 +253,15 @@ export class BattleCtrl extends Component {
             rage = this.mkBar(rgNode, 118, 10, C.rageFill, C.rageBack);
             rage(0);
         }
-        return { node: n, nameL, hp, rage, x: col, y };
+        // 我方在下方朝上，敌方在上方朝下。色块和类型纹样留着，贴图失败时仍然可见。
+        const actor = mountBattleActor(n, u.confId, 0, 8, 130, 96, isAlly ? 'up' : 'down');
+        if (actor) {
+            actor.node.setSiblingIndex(0);
+            pinCamp(n, -71, 86, 26, c.camp);
+            const pin = n.getChildByName('campPin');
+            if (pin) pin.setSiblingIndex(1);
+        }
+        return { node: n, nameL, hp, rage, x: col, y, actor };
     }
 
     private d (base: number): number { return base / this.speed; }
@@ -396,6 +413,7 @@ export class BattleCtrl extends Component {
         if (!v || !this.core) return;
         const u = this.core.get(uid);
         const dir = u.side === 0 ? 1 : -1;
+        if (v.actor) v.actor.playStrike(this.speed);
         const p = v.node.position.clone();
         tween(v.node)
             .to(this.d(0.12), { position: new Vec3(p.x, p.y + 28 * dir, 0) })
