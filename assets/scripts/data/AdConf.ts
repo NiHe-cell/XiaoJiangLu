@@ -36,6 +36,8 @@ export const REWARDED_CONF: RewardedAdConf[] = [
     { key: 'battle_revive', adUnitId: '', desc: '战斗复活' },
     // 额外招募：招募冷却/次数用尽后看广告追加一次
     { key: 'extra_recruit', adUnitId: '', desc: '额外招募' },
+    // 日常副本额外次数：空 ID 走 Ad 降级，直接加上这 1 次，不拦流程
+    { key: 'dungeon_extra', adUnitId: '', desc: '日常副本额外次数' },
 ];
 
 /** 插屏广告配置 */

@@ -8,6 +8,9 @@ import { Fx } from '../core/Fx';
 import { getStageConf, STAGE_CONF } from '../data/StageConf';
 import { getItemConf } from '../data/ItemConf';
 import { TXT } from '../data/TextConf';
+import { DungeonKind, RESULT_TRAIN } from '../data/RetentionConf';
+import { canDungeon, dungeonTitle } from '../core/Retention';
+import { doTrain, guideActive, maybeGuide } from './GuideLayer';
 
 export function buildResultPanel (parent: Node, param?: any): Node {
     const root = nd('Result', 720, 1280, parent);
@@ -21,10 +24,12 @@ export function buildResultPanel (parent: Node, param?: any): Node {
     const first = param ? param.first : false;
     const rounds = param ? param.rounds : 0;
     const stageId = param ? param.stageId : 1;
-    const s = getStageConf(stageId);
+    const dungeon: DungeonKind | '' = param && (param.dungeon === 'exp' || param.dungeon === 'silver' || param.dungeon === 'adv')
+        ? param.dungeon : '';
+    const s = dungeon ? null : getStageConf(stageId);
 
     txt(root, win ? TXT.result.win : TXT.result.lose, 44, win ? C.gold : C.red, 580, 60, 0, 470);
-    txt(root, s ? s.name : '', FS.h2, C.textSub, 580, 40, 0, 412);
+    txt(root, dungeon ? dungeonTitle(dungeon) : (s ? s.name : ''), FS.h2, C.textSub, 580, 40, 0, 412);
     txt(root, `耗时 ${rounds} 回合`, FS.small, C.textWeak, 580, 32, 0, 360);
 
     // 星级
@@ -40,13 +45,21 @@ export function buildResultPanel (parent: Node, param?: any): Node {
     box1.setPosition(0, 40);
     box(box1, 14, C.panel, C.goldDim, 2);
     txt(box1, TXT.result.reward, FS.small, C.gold, 200, 30, -220, 100);
-    const lines: string[] = [
-        `经验 +${reward.exp}`,
-        `银币 +${reward.silver}`,
-    ];
-    if (bonus.jade) lines.push(`将玉 +${bonus.jade}`);
-    for (const it of reward.items) lines.push(`${getItemConf(it.id).name} ×${it.n}`);
-    if (first) lines.push(TXT.result.firstBonus);
+    const lines: string[] = [];
+    if (dungeon && !win) {
+        lines.push(TXT.daily.failKeep);
+    } else if (dungeon) {
+        if (reward.silver) lines.push(`${TXT.home.silver} +${reward.silver}`);
+        if (bonus.jade) lines.push(`${TXT.home.jade} +${bonus.jade}`);
+        for (const it of reward.items) lines.push(`${getItemConf(it.id).name} ×${it.n}`);
+        if (!lines.length) lines.push(TXT.daily.failKeep);
+    } else {
+        lines.push(`经验 +${reward.exp}`);
+        lines.push(`银币 +${reward.silver}`);
+        if (bonus.jade) lines.push(`将玉 +${bonus.jade}`);
+        for (const it of reward.items) lines.push(`${getItemConf(it.id).name} ×${it.n}`);
+        if (first) lines.push(TXT.result.firstBonus);
+    }
     lines.forEach((l, i) => {
         txt(box1, l, FS.small, C.text, 560, 32, 0, 52 - i * 38);
     });
@@ -59,29 +72,49 @@ export function buildResultPanel (parent: Node, param?: any): Node {
         txt(st, s.storyAfter || TXT.result.defaultStory, FS.small, C.textSub, 620, 56, 0, 0, undefined, true);
     }
 
-    // 按钮
-    const btns: { t: string; fn: () => void; primary?: boolean }[] = [];
-    if (win) {
+    // 按钮。引导进行中只让「去养成」能把流程送走，其它钮先按住。
+    const guided = guideActive() && Store.data.guideStep === 3;
+    const btns: { t: string; fn: () => void; primary?: boolean; y?: number }[] = [];
+    if (guided) {
+        btns.push({ t: TXT.common.train, fn: () => doTrain(), primary: true, y: RESULT_TRAIN.y });
+    }
+    if (dungeon) {
+        const again = () => Router.go('battle', { dungeon });
+        if (canDungeon(Store.data, dungeon, Date.now())) {
+            btns.push({ t: TXT.daily.challenge, fn: () => { if (guided) return; again(); }, primary: !guided });
+        }
+        btns.push({ t: TXT.common.back, fn: () => { if (guided) return; backDaily(); } });
+    } else if (win) {
         const nextId = stageId + 1;
         const next = STAGE_CONF.find((x) => x.id === nextId);
-        if (next) btns.push({ t: TXT.result.next, fn: () => Router.go('battle', { stageId: nextId }), primary: true });
-        btns.push({ t: TXT.result.again, fn: () => Router.go('battle', { stageId }) });
+        if (next) btns.push({ t: TXT.result.next, fn: () => { if (guided) return; Router.go('battle', { stageId: nextId }); }, primary: !guided });
+        btns.push({ t: TXT.result.again, fn: () => { if (guided) return; Router.go('battle', { stageId }); } });
+        btns.push({ t: TXT.result.backHome, fn: () => { if (guided) return; Router.reset('home'); } });
     } else {
-        btns.push({ t: TXT.common.retry, fn: () => Router.go('battle', { stageId }), primary: true });
-        btns.push({ t: TXT.common.train, fn: () => Router.reset('hero') });
+        btns.push({ t: TXT.common.retry, fn: () => { if (guided) return; Router.go('battle', { stageId }); }, primary: !guided });
+        if (!guided) btns.push({ t: TXT.common.train, fn: () => Router.reset('hero') });
+        btns.push({ t: TXT.result.backHome, fn: () => { if (guided) return; Router.reset('home'); } });
     }
-    btns.push({ t: TXT.result.backHome, fn: () => Router.reset('home') });
 
+    let extra = guided ? 1 : 0;
     btns.forEach((b, i) => {
         const n = nd('rb' + i, 360, 84, root);
-        n.setPosition(0, -300 - i * 100);
+        const y = b.y !== undefined ? b.y : (-300 - extra * (guided ? 96 : 100));
+        if (b.y === undefined) extra += 1;
+        n.setPosition(0, y);
         box(n, 14, b.primary ? C.btnPrimary : C.btnGhost, b.primary ? C.gold : C.panelLine, 2);
         txt(n, b.t, FS.h1, b.primary ? C.text : C.textSub, 360, 44);
         n.on(Node.EventType.TOUCH_END, b.fn);
     });
 
-    if (win && stars === 3) Fx.toast(TXT.result.perfect);
+    if (win && stars === 3 && !dungeon) Fx.toast(TXT.result.perfect);
+    if (guided) maybeGuide(root, 'result');
     return root;
+}
+
+function backDaily (): void {
+    Router.backTo('daily');
+    if (Router.current !== 'daily') Router.reset('daily');
 }
 
 function drawStar (n: Node, color: Color): void {

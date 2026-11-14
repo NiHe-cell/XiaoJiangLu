@@ -7,6 +7,9 @@ import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, heroCard, NavKey } from './Common';
 import { TXT } from '../data/TextConf';
+import { HOME_ADJUST, HOME_GO, HOME_GOAL_CLAIM, HOME_QUICK_H, HOME_QUICK_W, HOME_QUICK_XS, HOME_QUICK_Y, GOAL_NEED } from '../data/RetentionConf';
+import { claimGoal, goalReady, syncDaily } from '../core/Retention';
+import { doMarch, goLineup, goStage, guideActive, interceptNav, maybeGuide, doRecruit } from './GuideLayer';
 
 export function buildHomePanel (parent: Node): Node {
     const root = nd('Home', 720, 1280, parent);
@@ -16,19 +19,25 @@ export function buildHomePanel (parent: Node): Node {
     drawHomeBg(bg);
 
     topBar(root, TXT.appName);
-    resBar(root);
+    const res = resBar(root);
+    if (syncDaily(Store.data, Date.now())) Store.save();
 
     // 战力条
     const pw = nd('powerBar', 580, 62, root);
-    pw.setPosition(0, 462);
+    pw.setPosition(0, HOME_ADJUST.y);
     box(pw, 12, C.panel, C.goldDim, 2);
     txt(pw, TXT.lineup.power, FS.small, C.textSub, 140, 44, -215, 0);
     txt(pw, String(Store.totalPower()), FS.h1, C.gold, 240, 44, -40, 0);
-    const pwBtn = nd('pwBtn', 130, 44, pw);
-    pwBtn.setPosition(205, 0);
+    const pwBtn = nd('pwBtn', HOME_ADJUST.w, HOME_ADJUST.h, pw);
+    pwBtn.setPosition(HOME_ADJUST.x, 0);
     box(pwBtn, 10, C.btn, C.gold, 2);
-    txt(pwBtn, TXT.home.adjust, FS.small, C.textDark, 130, 44);
-    pwBtn.on(Node.EventType.TOUCH_END, () => Router.go('lineup'));
+    txt(pwBtn, TXT.home.adjust, FS.small, C.textDark, HOME_ADJUST.w, HOME_ADJUST.h);
+    pwBtn.on(Node.EventType.TOUCH_END, () => {
+        const s = Store.data.guideStep;
+        if (s === 2) { goLineup(); return; }
+        if (s < 5) return;
+        Router.go('lineup');
+    });
 
     // 上阵武将（3×2）
     const line = Store.data.lineup;
@@ -54,13 +63,20 @@ export function buildHomePanel (parent: Node): Node {
     }
 
     // 出征
-    const goBtn = nd('go', 360, 104, root);
-    goBtn.setPosition(0, 20);
+    const goBtn = nd('go', HOME_GO.w, HOME_GO.h, root);
+    goBtn.setPosition(HOME_GO.x, HOME_GO.y);
     box(goBtn, 18, C.btnPrimary, C.gold, 3);
-    txt(goBtn, TXT.home.btnStory, FS.title, C.text, 360, 50, 0, 10);
-    txt(goBtn, `第 ${Math.max(1, chapterOf(Store.data.maxStageId))} 章 · 继续推图`, FS.small, new Color(255, 220, 200), 360, 34, 0, -24);
+    txt(goBtn, TXT.home.btnStory, FS.title, C.text, HOME_GO.w, 50, 0, 10);
+    txt(goBtn, `第 ${Math.max(1, chapterOf(Store.data.maxStageId))} 章 · 继续推图`, FS.small, new Color(255, 220, 200), HOME_GO.w, 34, 0, -24);
     goBtn.on(Node.EventType.TOUCH_START, () => goBtn.setScale(0.96, 0.96, 1));
-    goBtn.on(Node.EventType.TOUCH_END, () => { goBtn.setScale(1, 1, 1); Router.go('stage'); });
+    goBtn.on(Node.EventType.TOUCH_END, () => {
+        goBtn.setScale(1, 1, 1);
+        const s = Store.data.guideStep;
+        if (s === 0) { doMarch(); return; }
+        if (s === 1) { goStage(); return; }
+        if (s < 5) return;
+        Router.go('stage');
+    });
     goBtn.on(Node.EventType.TOUCH_CANCEL, () => goBtn.setScale(1, 1, 1));
 
     // 三个快捷入口
@@ -69,34 +85,66 @@ export function buildHomePanel (parent: Node): Node {
         { t: TXT.home.btnShop, k: 'shop' },
         { t: TXT.home.btnDaily, k: 'daily' },
     ];
-    const qx = [-196, 0, 196];
     quick.forEach((q, i) => {
-        const b = nd(q.k, 176, 78, root);
-        b.setPosition(qx[i], -122);
+        const b = nd(q.k, HOME_QUICK_W, HOME_QUICK_H, root);
+        b.setPosition(HOME_QUICK_XS[i], HOME_QUICK_Y);
         box(b, 12, C.panelLight, C.goldDim, 2);
-        txt(b, q.t, FS.h2, C.text, 176, 44, 0, 6);
+        txt(b, q.t, FS.h2, C.text, HOME_QUICK_W, 44, 0, 6);
         b.on(Node.EventType.TOUCH_END, () => {
-            if (q.k === 'daily') { Fx.toast(TXT.toast.comingSoon); return; }
+            const s = Store.data.guideStep;
+            if (q.k === 'daily') {
+                if (s < 5) return;
+                Router.go('daily');
+                return;
+            }
+            if (q.k === 'recruit' && s === 4) { doRecruit(); return; }
+            if (s < 5) return;
             Router.go(q.k);
         });
     });
 
-    // 今日目标
+    // 今日目标（推图 / 招募 / 强化，跨日在 syncDaily 里清零）
     const goal = nd('goal', 580, 96, root);
-    goal.setPosition(0, -270);
+    goal.setPosition(0, HOME_GOAL_CLAIM.y);
     box(goal, 12, new Color(34, 26, 19, 230), C.panelLine, 2);
-    txt(goal, TXT.home.todayGoal, FS.small, C.gold, 200, 34, -222, 24);
-    txt(goal, TXT.home.goalBody, FS.small, C.textSub, 520, 34, 20, -10);
-    boxAdd(goal, -276, -26, 552, 6, 3, new Color(60, 46, 33));
-    boxAdd(goal, -276, -26, 184, 6, 3, C.green);
+    const d = Store.data;
+    const doneN = (d.goalStage >= GOAL_NEED.stage ? 1 : 0)
+        + (d.goalRecruit >= GOAL_NEED.recruit ? 1 : 0)
+        + (d.goalUpgrade >= GOAL_NEED.upgrade ? 1 : 0);
+    txt(goal, TXT.home.todayGoal, FS.small, C.gold, 160, 34, -190, 24);
+    txt(goal, TXT.home.goalProg
+        .replace('{a}', String(Math.min(d.goalStage, GOAL_NEED.stage)))
+        .replace('{b}', String(Math.min(d.goalRecruit, GOAL_NEED.recruit)))
+        .replace('{c}', String(Math.min(d.goalUpgrade, GOAL_NEED.upgrade))),
+        FS.tiny, C.textSub, 340, 32, -70, -8);
+    boxAdd(goal, -276, -40, 360, 6, 3, new Color(60, 46, 33));
+    boxAdd(goal, -276, -40, Math.round(360 * doneN / 3), 6, 3, C.green);
+    if (d.goalClaimed) {
+        txt(goal, TXT.daily.claimed, FS.small, C.green, HOME_GOAL_CLAIM.w, HOME_GOAL_CLAIM.h, HOME_GOAL_CLAIM.x, 0);
+    } else if (goalReady(Store.data, Date.now())) {
+        const claim = nd('goalClaim', HOME_GOAL_CLAIM.w, HOME_GOAL_CLAIM.h, goal);
+        claim.setPosition(HOME_GOAL_CLAIM.x, 0);
+        box(claim, 10, C.btn, C.gold, 2);
+        txt(claim, TXT.daily.claim, FS.small, C.textDark, HOME_GOAL_CLAIM.w, HOME_GOAL_CLAIM.h);
+        claim.on(Node.EventType.TOUCH_END, () => {
+            if (guideActive()) return;
+            if (!claimGoal(Store.data, Date.now())) { Fx.toast(TXT.daily.notDone); return; }
+            Store.save();
+            res.refresh();
+            Fx.toast(TXT.daily.goalOk);
+            Router.go('home', undefined, true);
+        });
+    }
 
     txt(root, TXT.home.hint, FS.small, C.textWeak, 580, 36, 0, -420);
 
     bottomNav(root, 'home', (k: NavKey) => {
         if (k === 'home') return;
+        if (interceptNav(k)) return;
         Router.go(k);
     });
 
+    maybeGuide(root, 'home');
     return root;
 }
 

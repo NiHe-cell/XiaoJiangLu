@@ -7,6 +7,7 @@ import { HERO_CONF, HERO_MAP, getHeroConf, Quality } from '../data/HeroConf';
 import { ITEM_CONF, getItemConf, EquipSlot } from '../data/ItemConf';
 import { BOND_CONF } from '../data/BondConf';
 import { TXT } from '../data/TextConf';
+import { migrateOnto, newRetentionState, noteUpgrade } from './Retention';
 
 const SAVE_KEY = 'xxl_save_v1';
 
@@ -35,8 +36,19 @@ export interface PlayerData {
     autoBattle: boolean;
     speed: number;        // 1 / 2 / 3
     recruited: number;    // 累计招募次数
-    loginDay: number;     // 已签到天数
-    lastLoginTs: number;
+    loginDay: number;     // 本轮已领签到格数 0-6，领完第 7 天回到 0
+    lastLoginTs: number;  // 上次成功签到的时间戳，0 表示还没领过
+    levelUps: number;     // 武将实际升级次数（七日任务）
+    guideStep: number;    // 0-4 引导中，5 已完成
+    goalDay: string;
+    goalStage: number;
+    goalRecruit: number;
+    goalUpgrade: number;
+    goalClaimed: boolean;
+    weekClaimed: number;  // 七日任务领取位图
+    dungeonDay: string;
+    dungeonUsed: number[];   // 经验 / 银币 / 进阶丹，今日已胜次数
+    dungeonExtra: number[];  // 今日是否已解锁额外 1 次
 }
 
 function defaultEquip (): HeroState['equip'] {
@@ -60,6 +72,7 @@ function defaultData (): PlayerData {
         // 100 是「第一章第一关的前一关」哨兵值。
         heroes: {}, lineup: [], items: {}, stageStars: {}, maxStageId: 100,
         autoBattle: false, speed: 1, recruited: 0, loginDay: 0, lastLoginTs: 0,
+        ...newRetentionState(),
     };
     // 初始阵容：主角 + 两名初始武将（取数据表中前两名非主角武将）
     const mainId = HERO_CONF[0] ? HERO_CONF[0].id : 1000;
@@ -104,6 +117,7 @@ class StoreClass {
         if (!r.heroes) r.heroes = {};
         if (!r.lineup) r.lineup = [];
         if (typeof r.stamina !== 'number') r.stamina = 120;
+        migrateOnto(r, d);
         return r;
     }
 
@@ -271,12 +285,14 @@ class StoreClass {
     levelUp (confId: number, exp: number): number {
         const s = this.data.heroes[confId];
         if (!s) return 0;
+        const before = s.level;
         s.exp += exp;
         let guard = 0;
         while (s.exp >= this.expNeed(s.level) && s.level < this.data.level && guard++ < 200) {
             s.exp -= this.expNeed(s.level);
             s.level += 1;
         }
+        if (s.level > before) noteUpgrade(this.data, s.level - before, Date.now());
         if (s.exp >= this.expNeed(s.level)) s.exp = this.expNeed(s.level) - 1;
         return s.level;
     }
