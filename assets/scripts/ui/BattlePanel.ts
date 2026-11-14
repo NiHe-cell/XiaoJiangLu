@@ -16,6 +16,8 @@ import { getStageConf, STAGE_CONF } from '../data/StageConf';
 import { BattleCore, Unit, Ev } from '../model/BattleCore';
 import { BAL } from '../data/Balance';
 import { TXT } from '../data/TextConf';
+import { DungeonKind } from '../data/RetentionConf';
+import { dungeonEnemyIds, dungeonTitle, noteStage, settleDungeon } from '../core/Retention';
 
 const { ccclass } = _decorator;
 
@@ -33,6 +35,7 @@ interface View {
 @ccclass('BattleCtrl')
 export class BattleCtrl extends Component {
     private stageId = 0;
+    private dungeon: DungeonKind | '' = '';
     private core: BattleCore | null = null;
     private views: { [uid: number]: View } = {};
     private skillBtns: { [uid: number]: Node } = {};
@@ -48,14 +51,18 @@ export class BattleCtrl extends Component {
     private deadAllies = 0;
     private field: Node | null = null;
 
-    setup (stageId: number): void { this.stageId = stageId; }
+    setup (stageId: number, dungeon: DungeonKind | '' = ''): void {
+        this.stageId = stageId;
+        this.dungeon = dungeon;
+    }
 
     start (): void {
-        const s = getStageConf(this.stageId);
+        const s = this.dungeon ? null : getStageConf(this.stageId);
         const root = this.node;
         fullBg(root, C.bgDeep);
-        topBar(root, s ? s.name : TXT.common.battleName, () => {
-            Fx.confirm(TXT.battle.giveUpAsk, () => Router.back(), TXT.common.giveUp, TXT.common.goOn);
+        topBar(root, this.dungeon ? dungeonTitle(this.dungeon) : (s ? s.name : TXT.common.battleName), () => {
+            const ask = this.dungeon ? TXT.daily.giveUpAsk : TXT.battle.giveUpAsk;
+            Fx.confirm(ask, () => Router.back(), TXT.common.giveUp, TXT.common.goOn);
         });
 
         // 回合 / 提示（y=520，敌阵上方）
@@ -86,19 +93,24 @@ export class BattleCtrl extends Component {
                 rage: 0, role: c.role, skillId: c.skillId, comboSkillId, bondId, alive: true, buffs: [],
             });
         });
-        const level = s ? s.enemyLevel : 1;
-        const pool = s ? s.enemyIds : [];
+        const level = this.dungeon ? Math.max(1, Store.data.level) : (s ? s.enemyLevel : 1);
+        const pool = this.dungeon
+            ? dungeonEnemyIds(this.dungeon, Store.data.lineup.length)
+            : (s ? s.enemyIds : []);
         // 敌人数走 BAL.stageEnemyCountFor：在关卡配置基础上按「我方上阵人数」封顶。
         // 直接照搬 enemyIds 会出现新手 3 人打 4 人 —— 裴策实测 107/108/203/204/207/208 胜率 0%。
         // 再叠一层「同武将最多复刻一次」：与 tools/sim.js 的 enemyCount() 同口径，
         // 否则 101 这种只配了 1 个敌将 id 的关卡会刷出 3 个一模一样的克隆体，
         // 且运行时结果对不上裴策那 1920 场带此封顶的实证数据。
-        const enemyCount = pool.length && s
-            ? Math.min(
-                BAL.stageEnemyCountFor(s.chapter, s.index - 1, Store.data.lineup.length),
-                Math.max(1, pool.length * 2),
-            )
-            : 0;
+        // 副本的人数已在 dungeonEnemyIds 里用第 1 章同一条封顶算好，这里不再改公式。
+        const enemyCount = this.dungeon
+            ? pool.length
+            : (pool.length && s
+                ? Math.min(
+                    BAL.stageEnemyCountFor(s.chapter, s.index - 1, Store.data.lineup.length),
+                    Math.max(1, pool.length * 2),
+                )
+                : 0);
         for (let i = 0; i < enemyCount; i++) {
             const confId = pool[i % pool.length];
             const a = Store.enemyAttr(confId, level);
@@ -410,7 +422,9 @@ export class BattleCtrl extends Component {
     private finish (): void {
         if (this.state === 'end') return;
         this.state = 'end';
+        if (this.dungeon) { this.finishDungeon(); return; }
         const w = this.core ? this.core.winner() : 1;
+        noteStage(Store.data, Date.now());
         Store.addStamina(-BAL.staminaPerStage);
         const stars = w === 0 ? BAL.calcStars(this.core ? this.core.round : 0, this.deadAllies) : 0;
         const s = getStageConf(this.stageId);
@@ -430,11 +444,35 @@ export class BattleCtrl extends Component {
             // 记「本关已通关」而不是「下一关已通关」：解锁判定是 id <= maxStageId + 1，
             // 若记 nextId 会把下一关也判成已通关，直接跳关。
             if (this.stageId >= Store.data.maxStageId) Store.data.maxStageId = Math.min(this.stageId, 599);
+        }
+        Store.save();
+        const rounds = this.core ? this.core.round : 0;
+        this.scheduleOnce(() => {
+            Router.go('result', { stageId: this.stageId, win: w === 0, stars, reward, bonus, first, rounds });
+        }, this.d(0.9));
+    }
+
+    /** 副本：不扣体力。胜利才扣次数并发奖，失败次数不动。 */
+    private finishDungeon (): void {
+        const w = this.core ? this.core.winner() : 1;
+        const kind = this.dungeon;
+        const stars = w === 0 ? BAL.calcStars(this.core ? this.core.round : 0, this.deadAllies) : 0;
+        const reward = { exp: 0, silver: 0, items: [] as { id: number; n: number }[] };
+        const bonus = { exp: 0, silver: 0, jade: 0 };
+        if (kind && w === 0) {
+            const g = settleDungeon(Store.data, kind, true, Date.now(), Store.data.level);
+            if (g) {
+                reward.silver = g.silver || 0;
+                bonus.jade = g.jade || 0;
+                reward.items = g.items ? g.items.map((it) => ({ id: it.id, n: it.n })) : [];
+            }
             Store.save();
         }
         const rounds = this.core ? this.core.round : 0;
         this.scheduleOnce(() => {
-            Router.go('result', { stageId: this.stageId, win: w === 0, stars, reward, bonus, first, rounds });
+            Router.go('result', {
+                stageId: this.stageId, dungeon: kind, win: w === 0, stars, reward, bonus, first: false, rounds,
+            });
         }, this.d(0.9));
     }
 }
@@ -443,7 +481,9 @@ export function buildBattlePanel (parent: Node, param?: any): Node {
     const root = nd('Battle', 720, 1280, parent);
     root.setPosition(0, 0);
     const ctrl = root.addComponent(BattleCtrl)!;
+    const raw = param && param.dungeon;
+    const dungeon: DungeonKind | '' = raw === 'exp' || raw === 'silver' || raw === 'adv' ? raw : '';
     // 兜底必须给一个真实存在的关卡 id：旧值 1 在 StageConf 里查不到（关卡从 101 起）
-    ctrl.setup(param && param.stageId ? param.stageId : (STAGE_CONF[0] ? STAGE_CONF[0].id : 101));
+    ctrl.setup(param && param.stageId ? param.stageId : (STAGE_CONF[0] ? STAGE_CONF[0].id : 101), dungeon);
     return root;
 }

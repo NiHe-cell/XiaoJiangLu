@@ -21,6 +21,7 @@ import { buildBagPanel } from './ui/BagPanel';
 import { buildShopPanel } from './ui/ShopPanel';
 import { buildBattlePanel } from './ui/BattlePanel';
 import { buildResultPanel } from './ui/ResultPanel';
+import { buildDailyPanel } from './ui/DailyPanel';
 
 let booted = false;
 
@@ -54,6 +55,7 @@ function onSceneReady (): void {
     Router.register('shop', buildShopPanel);
     Router.register('battle', buildBattlePanel);
     Router.register('result', buildResultPanel);
+    Router.register('daily', buildDailyPanel);
 
     Router.go('home');
 }

@@ -9,6 +9,8 @@ import { topBar, resBar, bottomNav, heroCard, NavKey, starStr } from './Common';
 import { getHeroConf } from '../data/HeroConf';
 import { BOND_CONF } from '../data/BondConf';
 import { TXT } from '../data/TextConf';
+import { LINEUP_ACT } from '../data/RetentionConf';
+import { confirmLineup, doFight, guideActive, interceptNav, maybeGuide } from './GuideLayer';
 
 const PAGE_SIZE = 12;
 
@@ -149,10 +151,27 @@ export function buildLineupPanel (parent: Node): Node {
     rebuildPool();
     refreshBonds();
 
+    const gstep = Store.data.guideStep;
+    if (gstep === 1 || gstep === 2) {
+        const act = nd('guideAct', LINEUP_ACT.w, LINEUP_ACT.h, root);
+        act.setPosition(LINEUP_ACT.x, LINEUP_ACT.y);
+        const confirming = gstep === 1;
+        box(act, 14, confirming ? C.btn : C.btnPrimary, C.gold, 3);
+        txt(act, confirming ? TXT.common.confirm : TXT.guide.fightBtn, FS.h1,
+            confirming ? C.textDark : C.text, LINEUP_ACT.w, LINEUP_ACT.h);
+        act.on(Node.EventType.TOUCH_END, () => {
+            if (Store.data.guideStep === 1) confirmLineup();
+            else doFight();
+        });
+    }
+
     bottomNav(root, 'lineup', (k: NavKey) => {
         if (k === 'lineup') return;
+        if (k === 'home' && guideActive()) return;
+        if (interceptNav(k)) return;
         Router.reset(k === 'home' ? 'home' : k);
     });
 
+    maybeGuide(root, 'lineup');
     return root;
 }

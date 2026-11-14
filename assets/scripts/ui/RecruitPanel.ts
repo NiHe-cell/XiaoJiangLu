@@ -9,6 +9,8 @@ import { topBar, resBar, bottomNav, heroCard, NavKey, hexColor } from './Common'
 import { HERO_CONF, getHeroConf } from '../data/HeroConf';
 import { ITEM_CONF } from '../data/ItemConf';
 import { TXT } from '../data/TextConf';
+import { noteRecruit } from '../core/Retention';
+import { interceptNav, maybeGuide } from './GuideLayer';
 
 const COST_ONE = 100;
 const COST_TEN = 900;
@@ -69,6 +71,7 @@ export function buildRecruitPanel (parent: Node): Node {
         if (Store.data.jade < COST_ONE) { Fx.toast(TXT.toast.noJadeHint); return; }
         Store.addJade(-COST_ONE);
         Store.data.recruited += 1;
+        noteRecruit(Store.data, 1, Date.now());
         const ids = [rollHero()];
         const got = grant(ids);
         Store.save();
@@ -85,6 +88,7 @@ export function buildRecruitPanel (parent: Node): Node {
         if (Store.data.jade < COST_TEN) { Fx.toast(TXT.toast.noJadeHint); return; }
         Store.addJade(-COST_TEN);
         Store.data.recruited += 10;
+        noteRecruit(Store.data, 10, Date.now());
         const ids: number[] = [];
         for (let i = 0; i < 10; i++) ids.push(rollHero());
         // 保底：无紫及以上则把最后一个替换为紫/橙
@@ -106,7 +110,12 @@ export function buildRecruitPanel (parent: Node): Node {
     txt(pity, `累计招募 ${Store.data.recruited} 次`, FS.small, C.textSub, 400, 34, -110, 18);
     txt(pity, TXT.recruit.repeatLong, FS.tiny, C.textWeak, 620, 30, 0, -20);
 
-    bottomNav(root, 'recruit', (k: NavKey) => Router.reset(k));
+    bottomNav(root, 'recruit', (k: NavKey) => {
+        if (k === 'recruit') return;
+        if (interceptNav(k)) return;
+        Router.reset(k);
+    });
+    maybeGuide(root, 'recruit');
     return root;
 }
 

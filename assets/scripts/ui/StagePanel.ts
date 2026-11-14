@@ -8,6 +8,9 @@ import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, NavKey } from './Common';
 import { CHAPTER_CONF, STAGE_CONF, StageConf } from '../data/StageConf';
 import { TXT } from '../data/TextConf';
+import { GUIDE_DONE } from '../data/RetentionConf';
+import { noteStage } from '../core/Retention';
+import { guideActive, interceptNav, maybeGuide } from './GuideLayer';
 
 const STAMINA_COST = 6;
 
@@ -75,6 +78,7 @@ export function buildStagePanel (parent: Node, param?: any): Node {
             if (!unlocked) txt(card, TXT.stage.locked, FS.small, C.textWeak, 280, 30, 0, 0);
 
             card.on(Node.EventType.TOUCH_END, () => guardEnter(() => {
+                if (Store.data.guideStep < GUIDE_DONE) return;
                 if (!unlocked) { Fx.toast(TXT.toast.stageLocked); return; }
                 if (Store.data.stamina < STAMINA_COST) { Fx.toast(TXT.toast.noStaminaBuy); return; }
                 if (stars >= 3) {
@@ -117,6 +121,7 @@ export function buildStagePanel (parent: Node, param?: any): Node {
     box(sweepAll, 12, C.btn, C.gold, 2);
     txt(sweepAll, TXT.stage.sweepChapter, FS.h2, C.textDark, 240, 44);
     sweepAll.on(Node.EventType.TOUCH_END, () => {
+        if (Store.data.guideStep < GUIDE_DONE) return;
         const stages = STAGE_CONF.filter((s) => s.chapter === curChapter && (Store.data.stageStars[s.id] || 0) >= 3);
         if (!stages.length) { Fx.toast(TXT.toast.sweepNone); return; }
         let n = 0;
@@ -127,6 +132,7 @@ export function buildStagePanel (parent: Node, param?: any): Node {
             const r = rewardOf(s);
             silver += r.silver; exp += r.exp;
             applyReward(r);
+            noteStage(Store.data, Date.now());
             n++;
         }
         Store.save();
@@ -135,11 +141,17 @@ export function buildStagePanel (parent: Node, param?: any): Node {
     });
 
     bottomNav(root, 'home', (k: NavKey) => {
-        if (k === 'home') { Router.reset('home'); return; }
+        if (k === 'home') {
+            if (guideActive()) return;
+            Router.reset('home');
+            return;
+        }
+        if (interceptNav(k)) return;
         Router.reset(k);
     });
 
     rebuildTabs(); rebuildList(); refreshTip();
+    maybeGuide(root, 'stage');
     return root;
 }
 
@@ -177,6 +189,7 @@ function doSweep (s: StageConf, refresh?: () => void): void {
     Store.addStamina(-STAMINA_COST);
     const r = rewardOf(s);
     applyReward(r);
+    noteStage(Store.data, Date.now());
     Store.save();
     if (refresh) refresh();
     Fx.toast(`扫荡完成：银币 +${r.silver}，经验 +${r.exp}`);

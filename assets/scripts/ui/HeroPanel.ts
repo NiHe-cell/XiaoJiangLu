@@ -11,6 +11,8 @@ import { getSkillConf } from '../data/SkillConf';
 import { BOND_CONF } from '../data/BondConf';
 import { ITEM_CONF, EquipSlot } from '../data/ItemConf';
 import { TXT } from '../data/TextConf';
+import { HERO_ACK } from '../data/RetentionConf';
+import { ackTrain, interceptNav, maybeGuide } from './GuideLayer';
 
 const PER_PAGE = 20;
 
@@ -73,7 +75,20 @@ function buildList (parent: Node): Node {
     };
     rebuild();
 
-    bottomNav(root, 'hero', (k: NavKey) => Router.reset(k));
+    if (Store.data.guideStep === 3) {
+        const ack = nd('ack', HERO_ACK.w, HERO_ACK.h, root);
+        ack.setPosition(HERO_ACK.x, HERO_ACK.y);
+        box(ack, 14, C.btn, C.gold, 2);
+        txt(ack, TXT.common.gotIt, FS.h2, C.textDark, HERO_ACK.w, HERO_ACK.h);
+        ack.on(Node.EventType.TOUCH_END, () => ackTrain());
+    }
+
+    bottomNav(root, 'hero', (k: NavKey) => {
+        if (k === 'hero') return;
+        if (interceptNav(k)) return;
+        Router.reset(k);
+    });
+    maybeGuide(root, 'hero');
     return root;
 }
 
@@ -230,7 +245,12 @@ function buildDetail (parent: Node, confId: number): Node {
     refresh();
     refreshAll.push(refresh);
 
-    bottomNav(root, 'hero', (k: NavKey) => Router.reset(k));
+    bottomNav(root, 'hero', (k: NavKey) => {
+        if (k === 'hero') return;
+        if (interceptNav(k)) return;
+        Router.reset(k);
+    });
+    maybeGuide(root, 'heroDetail');
     return root;
 }
 
