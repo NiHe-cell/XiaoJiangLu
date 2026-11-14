@@ -12,6 +12,7 @@ import { nd } from './core/Ui';
 import { Store } from './core/Store';
 import { Router } from './core/Router';
 import { Fx } from './core/Fx';
+import { bindAutoSave, login, onShareAppMessage } from './core/WxApi';
 import { buildHomePanel } from './ui/HomePanel';
 import { buildStagePanel } from './ui/StagePanel';
 import { buildLineupPanel } from './ui/LineupPanel';
@@ -23,6 +24,32 @@ import { buildBattlePanel } from './ui/BattlePanel';
 import { buildResultPanel } from './ui/ResultPanel';
 
 let booted = false;
+/** 平台钩子只挂一次。reboot 会再次走场景引导，但不能重复注册 onHide。 */
+let wxPlatformBound = false;
+
+/**
+ * 进游戏时接入微信：静默登录、右上角默认分享、切后台自动存档。
+ * 三个调用都不等待回调。非微信环境或接口抛错只记日志，后面的界面引导照常进行。
+ */
+function initWxPlatform (): void {
+    if (wxPlatformBound) return;
+    wxPlatformBound = true;
+    try {
+        login();
+    } catch (e) {
+        console.warn('[Main] 静默登录失败（继续进入游戏）', e);
+    }
+    try {
+        onShareAppMessage();
+    } catch (e) {
+        console.warn('[Main] 注册默认分享失败（继续进入游戏）', e);
+    }
+    try {
+        bindAutoSave(() => Store.save());
+    } catch (e) {
+        console.warn('[Main] 绑定自动存档失败（继续进入游戏）', e);
+    }
+}
 
 function onSceneReady (): void {
     if (booted) return;
@@ -38,6 +65,7 @@ function onSceneReady (): void {
     if (sp) sp.active = false;
 
     Store.load();
+    initWxPlatform();
 
     const root = nd('UIRoot', 720, 1280, canvas);
     root.setPosition(0, 0);
