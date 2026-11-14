@@ -1,9 +1,11 @@
 /** 通用 UI 零件：顶部资源条 / 底部导航 / 武将卡 / 类型纹样 */
 import { Node, Color, Graphics, Label, HorizontalTextAlignment, VerticalTextAlignment } from 'cc';
 import { nd, box, boxAdd, boxAddLine, circleAdd, triAdd, lineAdd, txt, gfx } from '../core/Ui';
+import { paintPixel } from '../core/Art';
 import { C, FS, qualityColor, campColor, QUALITY_NAME, CAMP_NAME, ROLE_NAME } from '../core/Theme';
 import { Store } from '../core/Store';
 import { getHeroConf } from '../data/HeroConf';
+import { artForRole, NAV_ART } from '../data/PixelArtConf';
 import { TXT } from '../data/TextConf';
 
 /** 顶部条：返回 + 标题 + 主公等级；返回 refresh() */
@@ -37,20 +39,26 @@ export function topBar (parent: Node, title: string, back?: () => void): { node:
 export function resBar (parent: Node, y = 534): { node: Node; refresh: () => void } {
     const n = nd('resBar', 700, 52, parent);
     n.setPosition(0, y);
-    const mk = (x: number, key: string, col: Color) => {
+    const mk = (x: number, key: string, art: 'coin' | 'jade' | 'peach', col: Color) => {
         const p = nd(key, 170, 44, n);
         p.setPosition(x, 0);
         box(p, 22, new Color(30, 22, 16, 230), C.panelLine, 2);
-        const l = txt(p, '', FS.small, col, 150, 36, 0, 0);
+        paintPixel(p, art, -66, 0, 22, 22, (host) => {
+            const g = gfx(host);
+            g.fillColor = col;
+            g.circle(0, 0, 7);
+            g.fill();
+        });
+        const l = txt(p, '', FS.tiny, col, 126, 36, 16, 0);
         return l;
     };
-    const l1 = mk(-190, 'silver', C.gold);
-    const l2 = mk(0, 'jade', C.q3);
-    const l3 = mk(190, 'stamina', C.cyan);
+    const l1 = mk(-190, 'silver', 'coin', C.gold);
+    const l2 = mk(0, 'jade', 'jade', C.q3);
+    const l3 = mk(190, 'stamina', 'peach', C.cyan);
     const refresh = () => {
-        l1.string = `银币 ${Store.data.silver}`;
-        l2.string = `将玉 ${Store.data.jade}`;
-        l3.string = `体力 ${Store.data.stamina}/200`;
+        l1.string = `${TXT.home.silver} ${Store.data.silver}`;
+        l2.string = `${TXT.home.jade} ${Store.data.jade}`;
+        l3.string = `${TXT.home.stamina} ${Store.data.stamina}/200`;
     };
     refresh();
     return { node: n, refresh };
@@ -77,8 +85,9 @@ export function bottomNav (parent: Node, current: NavKey, onNav: (k: NavKey) => 
         b.setPosition(xs[i], 0);
         const on = current === it.k;
         box(b, 10, on ? C.btn : C.btnGhost, on ? C.gold : C.panelLine, 2);
-        txt(b, it.t, FS.small, on ? C.textDark : C.textSub, 96, 40, 0, 8);
-        if (on) boxAdd(b, -16, -28, 32, 4, 2, C.gold);
+        paintPixel(b, NAV_ART[it.k], 0, 14, 26, 26, (host) => softMark(host, on ? C.textDark : C.goldDim), on ? C.textDark : C.goldLight);
+        txt(b, it.t, FS.small, on ? C.textDark : C.textSub, 96, 24, 0, -16);
+        if (on) boxAdd(b, -20, -36, 40, 4, 2, C.gold);
         b.on(Node.EventType.TOUCH_END, () => onNav(it.k));
     });
     return n;
@@ -117,7 +126,7 @@ export interface CardOpts {
     onClick?: () => void; showLevel?: boolean; showStar?: boolean; compact?: boolean;
 }
 
-/** 武将占位卡（零资源：色块 + 阵营纹样 + 类型纹样 + 文字） */
+/** 武将卡。色块、阵营角标和类型纹样一直在；像素职业替身只有加载成功才盖上去。 */
 export function heroCard (parent: Node, o: CardOpts): Node {
     const w = o.w ?? 112;
     const h = o.h ?? 146;
@@ -128,24 +137,34 @@ export function heroCard (parent: Node, o: CardOpts): Node {
     const qc = qualityColor(c.quality);
 
     box(n, 12, C.panel, qc, 3);
-    // 头像区：武将个人主色（同阵营也能一眼区分）
+    // 头像区：个人主色垫底。像素替身盖在上面，缺图时露出色块和类型纹样。
     const ih = h - 46;
     const ax = -w / 2 + 8;
-    const ay = 46 - h / 2 + (h - 46 - ih) / 2;
-    boxAdd(n, ax, ay, w - 16, ih - 8, 8, hexColor(c.avatarColor));
-    // 阵营角标（左上三角：色 + 形状双编码，与品质色永不同处一位）
-    triAdd(n, ax + 2, ay + ih - 10, 22, campColor(c.camp), 'br');
-    // 类型纹样
-    roleGlyph(gfx(n), c.role, 0, 46 - h / 2 + ih / 2 - 2, Math.min(w, ih) * 0.4, new Color(255, 255, 255, 220));
-    // 名字（品质色 100%）
+    const ay = 46 - h / 2;
+    const pw = w - 16;
+    const ph = ih - 8;
+    const pcx = ax + pw / 2;
+    const pcy = ay + ph / 2;
+    const plate = nd('plate', pw, ph, n);
+    plate.setPosition(pcx, pcy);
+    box(plate, 8, hexColor(c.avatarColor));
+    const side = Math.min(pw, ph) * 0.78;
+    paintPixel(n, artForRole(c.role), pcx, pcy, side, side, (host) => {
+        roleGlyph(gfx(host), c.role, 0, 0, side * 0.42, new Color(255, 255, 255, 220));
+    });
+    // 阵营角标画在替身之后，避免被精灵挡住。
+    const camp = nd('camp', w, h, n);
+    triAdd(camp, ax + 2, ay + ih - 10, 22, campColor(c.camp), 'br');
     txt(n, c.name, o.compact ? FS.tiny : FS.small, qc, w - 8, 26, 0, -h / 2 + 26);
-    // 品质角标
-    boxAdd(n, w / 2 - 8 - 30, h / 2 - 8 - 22, 30, 22, 6, qc);
-    txt(n, QUALITY_NAME[c.quality], FS.tiny, C.textDark, 30, 22, w / 2 - 8 - 15, h / 2 - 8 - 11);
-    // 等级 / 星级
+    const qn = nd('q', 30, 22, n);
+    qn.setPosition(w / 2 - 23, h / 2 - 19);
+    box(qn, 6, qc);
+    txt(qn, QUALITY_NAME[c.quality], FS.tiny, C.textDark, 30, 22);
     if (o.showLevel !== false && st) {
-        boxAdd(n, -w / 2 + 6, -h / 2 + 2, 44, 22, 6, new Color(20, 15, 11, 220));
-        txt(n, `Lv${st.level}`, FS.tiny, C.gold, 44, 22, -w / 2 + 6 + 22, -h / 2 + 13);
+        const lv = nd('lv', 44, 22, n);
+        lv.setPosition(-w / 2 + 28, -h / 2 + 13);
+        box(lv, 6, new Color(20, 15, 11, 220));
+        txt(lv, `Lv${st.level}`, FS.tiny, C.gold, 44, 22);
     }
     if (o.showStar && st) {
         txt(n, starStr(st.star), FS.tiny, C.gold, w - 56, 22, w / 2 - 8 - (w - 56) / 2 - 26, -h / 2 + 13);
@@ -164,6 +183,14 @@ export function starStr (n: number): string {
 export function hexColor (hex: string): Color {
     const h = hex.replace('#', '');
     return new Color(parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16), 255);
+}
+
+/** 图标还没加载到时的小色块，避免导航上留一个空白。 */
+export function softMark (host: Node, col: Color): void {
+    const g = gfx(host);
+    g.fillColor = col;
+    g.roundRect(-7, -7, 14, 14, 3);
+    g.fill();
 }
 
 /** 空态提示 */

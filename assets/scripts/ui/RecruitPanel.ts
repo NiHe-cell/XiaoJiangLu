@@ -1,6 +1,7 @@
 /** 招募（酒馆）：纯玩法货币「将玉」，无付费入口 */
 import { Node, Color, Graphics } from 'cc';
 import { nd, box, boxAdd, boxAddLine, txt, mask, fullBg } from '../core/Ui';
+import { paintPixel } from '../core/Art';
 import { C, FS, qualityColor, QUALITY_NAME, CAMP_NAME } from '../core/Theme';
 import { Store, newHeroState } from '../core/Store';
 import { Router } from '../core/Router';
@@ -36,6 +37,9 @@ export function buildRecruitPanel (parent: Node): Node {
     g.lineTo(220, -190); g.lineTo(-220, -190); g.close(); g.fill();
     txt(stage, TXT.recruit.stage, FS.title, C.gold, 400, 50, 0, 100);
     txt(stage, TXT.recruit.slogan, FS.small, C.textSub, 500, 34, 0, 44);
+    paintPixel(stage, 'flower', -150, 158, 36, 36, null);
+    paintPixel(stage, 'jade', 0, 158, 36, 36, null);
+    paintPixel(stage, 'scroll', 150, 158, 36, 36, null);
     // 品质概率由「在池武将 × 品质权重」现算，不手填百分比。
     const rated = qualityRates();
     const labels = formatRatePercent(rated.rates);

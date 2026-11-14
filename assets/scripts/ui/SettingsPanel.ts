@@ -12,6 +12,7 @@ import { ageBadge, ageHint, healthBlock } from './AgeMark';
 import { TXT } from '../data/TextConf';
 import { MINOR_TIP } from '../data/ComplianceConf';
 import { AGREEMENT_PAGES, PRIVACY_SUMMARY, contactEmail, contactStatusLines } from '../data/LegalConf';
+import { creditPages } from '../data/PixelArtConf';
 
 export function buildSettingsPanel (parent: Node): Node {
     const root = nd('Settings', 720, 1280, parent);
@@ -36,14 +37,16 @@ export function buildSettingsPanel (parent: Node): Node {
         { text: TXT.settings.privacy, onClick: () => openPrivacy(root) },
         { text: TXT.settings.agreement, onClick: () => showPages(root, TXT.settings.agreement, AGREEMENT_PAGES) },
         { text: TXT.settings.feedback, onClick: () => showFeedback(root) },
+        { text: TXT.settings.credits, onClick: () => showPages(root, TXT.settings.creditsTitle, creditPages()) },
         { text: TXT.settings.clear, onClick: () => confirmClear() },
     ];
     for (let i = 0; i < buttons.length; i++) {
         const item = buttons[i];
+        const last = i === buttons.length - 1;
         const button = nd('set' + i, 420, 64, root);
         button.setPosition(0, -70 - i * 78);
-        box(button, 12, i === 3 ? C.btnGhost : C.panelLight, C.goldDim, 2);
-        txt(button, item.text, FS.h2, i === 3 ? C.textSub : C.text, 420, 64);
+        box(button, 12, last ? C.btnGhost : C.panelLight, C.goldDim, 2);
+        txt(button, item.text, FS.h2, last ? C.textSub : C.text, 420, 64);
         button.on(Node.EventType.TOUCH_END, item.onClick);
     }
 

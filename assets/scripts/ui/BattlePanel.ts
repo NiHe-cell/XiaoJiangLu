@@ -3,12 +3,14 @@
  * 坐标来源：docs/UI视觉规格-温绘.md §5.5 战斗 Battle（单位 150×180 / 技能条 cy=-350 / 控制条 cy=-456）
  */
 import { _decorator, Component, Node, Color, Vec3, tween, UIOpacity, Label, HorizontalTextAlignment, VerticalTextAlignment } from 'cc';
-import { nd, box, boxAdd, triAdd, txt, fullBg, gfx } from '../core/Ui';
+import { nd, box, triAdd, txt, fullBg, gfx } from '../core/Ui';
+import { paintPixel } from '../core/Art';
 import { C, FS, campColor, qualityColor } from '../core/Theme';
 import { Store } from '../core/Store';
 import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
 import { topBar, roleGlyph, hexColor } from './Common';
+import { artForRole, artForUnit } from '../data/PixelArtConf';
 import { getHeroConf } from '../data/HeroConf';
 import { getSkillConf } from '../data/SkillConf';
 import { BOND_CONF } from '../data/BondConf';
@@ -206,12 +208,17 @@ export class BattleCtrl extends Component {
     private makeSkillBtn (b: Node, u: Unit): void {
         const c = getHeroConf(u.confId);
         box(b, 12, C.panel, qualityColor(c.quality), 2);
-        boxAdd(b, -32, 6, 64, 56, 8, hexColor(c.avatarColor));
-        triAdd(b, -38, 34, 18, campColor(c.camp), 'br');
-        roleGlyph(gfx(b), c.role, 0, 6, 24, new Color(255, 255, 255, 215));
-        txt(b, c.name, 18, C.text, 80, 22, 0, -14);
+        const plate = nd('plate', 48, 36, b);
+        plate.setPosition(0, 16);
+        box(plate, 6, hexColor(c.avatarColor));
+        paintPixel(b, artForRole(c.role), 0, 16, 32, 32, (host) => {
+            roleGlyph(gfx(host), c.role, 0, 0, 16, new Color(255, 255, 255, 215));
+        });
+        const camp = nd('camp', 80, 80, b);
+        triAdd(camp, -38, 34, 18, campColor(c.camp), 'br');
+        txt(b, c.name, 18, C.text, 80, 20, 0, -16);
         const rg = nd('rg', 64, 8, b);
-        rg.setPosition(0, -28);
+        rg.setPosition(0, -32);
         this.skillBars[u.uid] = this.mkBar(rg, 64, 8, C.rageFill, C.rageBack);
         b.on(Node.EventType.TOUCH_END, () => {
             if (this.state === 'end') return;
@@ -245,17 +252,18 @@ export class BattleCtrl extends Component {
         const n = nd('u' + u.uid, UW, UH, parent);
         n.setPosition(col, y);
         box(n, 14, C.panel, qualityColor(c.quality), 3);
-        // 名字条（品质色描边 + 白字）
+        const plate = nd('plate', 130, 96, n);
+        plate.setPosition(0, 8);
+        box(plate, 10, hexColor(c.avatarColor));
+        paintPixel(n, artForUnit(u.side, u.role), 0, 8, 84, 84, (host) => {
+            roleGlyph(gfx(host), c.role, 0, 0, 34, new Color(255, 255, 255, 215));
+        });
+        const camp = nd('camp', UW, UH, n);
+        triAdd(camp, -71, 86, 26, campColor(c.camp), 'br');
         const nm = nd('nm', 130, 28, n);
         nm.setPosition(0, 74);
         box(nm, 8, C.panelLight, qualityColor(c.quality), 2);
         const nameL = txt(nm, c.name, 20, C.text, 126, 26);
-        // 头像区（个人主色）
-        boxAdd(n, -65, -40, 130, 96, 10, hexColor(c.avatarColor));
-        // 阵营角标（左上三角，色 + 形状双编码）
-        triAdd(n, -71, 86, 26, campColor(c.camp), 'br');
-        // 类型纹样
-        roleGlyph(gfx(n), c.role, 0, 8, 34, new Color(255, 255, 255, 215));
 
         const hpNode = nd('hp', 118, 14, n);
         hpNode.setPosition(0, -52);
@@ -307,10 +315,12 @@ export class BattleCtrl extends Component {
         if (!b || !this.core) return;
         const c = getHeroConf(this.core.get(uid).confId);
         box(b, 12, on ? C.slotActive : C.panel, qualityColor(c.quality), on ? 4 : 2);
-        boxAdd(b, -32, 6, 64, 56, 8, hexColor(c.avatarColor));
-        triAdd(b, -38, 34, 18, campColor(c.camp), 'br');
-        roleGlyph(gfx(b), c.role, 0, 6, 24, new Color(255, 255, 255, 215));
-        txt(b, c.name, 18, on ? C.textDark : C.text, 80, 22, 0, -14);
+        for (let i = 0; i < b.children.length; i++) {
+            const child = b.children[i];
+            if (child.name !== 'txt') continue;
+            const label = child.getComponent(Label);
+            if (label) label.color = on ? C.textDark : C.text;
+        }
         const o = b.getComponent(UIOpacity) || b.addComponent(UIOpacity)!;
         if (this.hlTween) { this.hlTween.stop(); this.hlTween = null; }
         if (on) {
