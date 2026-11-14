@@ -1,12 +1,14 @@
 /** 背包：道具列表 + 使用 */
 import { Node, Color } from 'cc';
-import { nd, box, boxAdd, txt, mask, fullBg } from '../core/Ui';
+import { nd, box, boxAdd, txt, mask, fullBg, gfx } from '../core/Ui';
+import { paintPixel } from '../core/Art';
 import { C, FS, qualityColor, QUALITY_NAME } from '../core/Theme';
 import { Store } from '../core/Store';
 import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, heroCard, NavKey } from './Common';
 import { ITEM_CONF, getItemConf } from '../data/ItemConf';
+import { artForItem } from '../data/PixelArtConf';
 import { getHeroConf } from '../data/HeroConf';
 import { TXT } from '../data/TextConf';
 
@@ -37,6 +39,7 @@ export function buildBagPanel (parent: Node): Node {
             card.setPosition(x, y);
             box(card, 10, C.panel, qualityColor(it.quality), 2);
             boxAdd(card, -38, -8, 76, 62, 8, qualityColor(it.quality));
+            paintPixel(card, artForItem(it), 0, 0, 36, 36, null);
             txt(card, it.name, 15, C.text, 92, 26, 0, 34);
             txt(card, `×${Store.itemCount(it.id)}`, 15, C.gold, 92, 24, 0, -36);
             card.on(Node.EventType.TOUCH_END, () => showItem(root, it.id, () => { rebuild(); res.refresh(); }));
@@ -70,6 +73,12 @@ function showItem (root: Node, itemId: number, onChange: () => void): void {
     const panel = nd('itemPop', 600, 460, m);
     panel.setPosition(0, 40);
     box(panel, 16, C.panel, C.gold, 3);
+    paintPixel(panel, artForItem(it), -230, 168, 52, 52, (host) => {
+        const g = gfx(host);
+        g.fillColor = qualityColor(it.quality);
+        g.roundRect(-22, -22, 44, 44, 8);
+        g.fill();
+    });
     txt(panel, it.name, FS.title, qualityColor(it.quality), 520, 44, 0, 170);
     txt(panel, it.desc, FS.small, C.textSub, 520, 60, 0, 108);
     txt(panel, `拥有 ${Store.itemCount(itemId)}`, FS.small, C.gold, 520, 34, 0, 56);

@@ -9,6 +9,7 @@
  */
 import { director, Director, Node } from 'cc';
 import { nd } from './core/Ui';
+import { preloadPixelArt } from './core/Art';
 import { Store } from './core/Store';
 import { Router } from './core/Router';
 import { Fx } from './core/Fx';
@@ -44,6 +45,7 @@ function onSceneReady (): void {
     const sp = cam ? cam.getChildByName('SpriteSplash') : null;
     if (sp) sp.active = false;
 
+    preloadPixelArt();
     const loaded = Store.load();
 
     const root = nd('UIRoot', 720, 1280, canvas);

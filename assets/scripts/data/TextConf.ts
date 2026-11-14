@@ -392,6 +392,8 @@ export const TXT = {
     privacy: '隐私政策',
     agreement: '用户协议',
     feedback: '意见反馈',
+    credits: '署名',
+    creditsTitle: '素材署名',
     clear: '清除存档',
     clearAsk: '清除本机存档？此操作不可恢复',
     opened: '已打开隐私指引',

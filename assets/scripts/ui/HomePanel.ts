@@ -1,11 +1,13 @@
 /** 主城界面 */
 import { Node, Color, Graphics } from 'cc';
 import { nd, box, boxAdd, boxAddLine, lineAdd, txt, fullBg } from '../core/Ui';
+import { paintPixel } from '../core/Art';
 import { C, FS } from '../core/Theme';
 import { Store } from '../core/Store';
 import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
-import { topBar, resBar, bottomNav, heroCard, NavKey } from './Common';
+import { PixelArtId } from '../data/PixelArtConf';
+import { topBar, resBar, bottomNav, heroCard, NavKey, softMark } from './Common';
 import { TXT } from '../data/TextConf';
 import { bannerClearanceDesign } from '../core/Ad';
 
@@ -63,6 +65,7 @@ export function buildHomePanel (parent: Node): Node {
     const goBtn = nd('go', 360, 104, root);
     goBtn.setPosition(0, 20);
     box(goBtn, 18, C.btnPrimary, C.gold, 3);
+    paintPixel(goBtn, 'battle', -150, 0, 40, 40, null, C.text);
     txt(goBtn, TXT.home.btnStory, FS.title, C.text, 360, 50, 0, 10);
     txt(goBtn, `第 ${Math.max(1, chapterOf(Store.data.maxStageId))} 章 · 继续推图`, FS.small, new Color(255, 220, 200), 360, 34, 0, -24);
     goBtn.on(Node.EventType.TOUCH_START, () => goBtn.setScale(0.96, 0.96, 1));
@@ -70,17 +73,18 @@ export function buildHomePanel (parent: Node): Node {
     goBtn.on(Node.EventType.TOUCH_CANCEL, () => goBtn.setScale(1, 1, 1));
 
     // 三个快捷入口
-    const quick: { t: string; k: string }[] = [
-        { t: TXT.home.btnRecruit, k: 'recruit' },
-        { t: TXT.home.btnShop, k: 'shop' },
-        { t: TXT.home.btnDaily, k: 'daily' },
+    const quick: { t: string; k: string; art: PixelArtId }[] = [
+        { t: TXT.home.btnRecruit, k: 'recruit', art: 'flower' },
+        { t: TXT.home.btnShop, k: 'shop', art: 'ingot' },
+        { t: TXT.home.btnDaily, k: 'daily', art: 'clock' },
     ];
     const qx = [-196, 0, 196];
     quick.forEach((q, i) => {
         const b = nd(q.k, 176, 78, root);
         b.setPosition(qx[i], -122);
         box(b, 12, C.panelLight, C.goldDim, 2);
-        txt(b, q.t, FS.h2, C.text, 176, 44, 0, 6);
+        paintPixel(b, q.art, 0, 16, 28, 28, (host) => softMark(host, C.goldDim), C.goldLight);
+        txt(b, q.t, FS.h2, C.text, 176, 32, 0, -16);
         b.on(Node.EventType.TOUCH_END, () => {
             if (q.k === 'daily') { Fx.toast(TXT.toast.comingSoon); return; }
             Router.go(q.k);

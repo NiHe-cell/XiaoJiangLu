@@ -6,7 +6,7 @@
 - 游戏名：《骁将录：三国志》
 - 类型：2D 竖屏卡牌 + 回合制 RPG + 养成
 - 平台：**微信小游戏**（Cocos Creator **3.8.8**）
-- 美术风格：Q 版/半 Q 版萌系三国（对标《放开那三国》）
+- 美术风格：Q 版/半 Q 版萌系三国（对标《放开那三国》）。Q 版立绘仍是目标。立绘到位前，允许登记过的 CC0 像素图做临时占位；像素图不算立绘交付
 - 核心特色：竖屏单手操作、低养成压力、武将羁绊联动
 - 经济：全免费，无付费墙，无充值入口（将玉 = 纯玩法货币）
 
@@ -17,7 +17,7 @@
 - 场景现状：Canvas(720×1280) → Camera(正交, orthoHeight 640) → SpriteSplash
 - **可用安全宽度**：9:19.5 机型可见设计宽度约 **591**，半宽 ≈ 295。所有可点击元素必须落在 **x ∈ [-290, 290]**，背景层可用 Widget 左右拉伸铺满。
 - 入口组件：`assets/scripts/Main.ts`，`@ccclass('Main')`，手工挂到场景 Canvas 节点（scene JSON 中 `__type__: "Main"`，已确认 3.x 按 ccclass 名反序列化）
-- **素材策略**：零外部美术资源。全部 UI 用 `Graphics` + `Label`（系统字体）程序化绘制，杜绝资源缺失导致的空图。
+- **素材策略**：界面以 `Graphics` + `Label`（系统字体）为准，缺图不能出现空精灵。允许两类外部图：`docs/art-samples` 的 Q 版立绘（压缩后入包），以及 `docs/像素占位素材-许可.md` 登记过的 CC0 像素占位。像素图不是 Q 版立绘。新图必须经 `assets/scripts/core/Art.ts` 按 id 加载，加载失败就留下原来的程序绘制。禁止把整包素材丢进 `assets/resources`（该目录默认进微信主包）。主包仍 ≤ 4MB。
 - git：仓库已有提交历史（「尚无 commit」是早期脚手架时的说法，已过时）。每完成一个可验证步骤立即 commit。公开仓库不写入真实 AppID。
 
 ## 3. 构建 / 校验命令（主理人已验证可用）
@@ -41,10 +41,11 @@ env -u ELECTRON_RUN_AS_NODE -u NODE_OPTIONS \
 ```
 assets/scripts/
   Main.ts                 入口（唯一挂场景的组件）
-  core/                   框架层：Ui/Theme/EventBus/Save/Toast/Router
-  data/                   静态配置表（文辞产出）
+  core/                   框架层：Ui/Theme/Art/EventBus/Save/Toast/Router
+  data/                   静态配置表（文辞产出、PixelArtConf）
   model/                  运行时模型：属性计算、战斗解算
   ui/                     各界面面板
+assets/resources/pixel/   已登记的 CC0 像素占位。默认进主包，只放 PixelArtConf 里的小图
 ```
 
 ## 5. 进度
@@ -53,10 +54,11 @@ assets/scripts/
 - [x] Phase 1 核心循环：数据层 + 战斗 + 主城/阵容/推图
 - [x] Phase 2 内容：养成/招募/背包/商城（日常副本按钮仍是「还没开」占位）
 - [ ] Phase 3 验收发布：代码侧提审缺口已补一轮；提审仍要等个体工商户主体、新 AppID、备案、隐私指引审核、客服邮箱与执照信息、软著，以及真机重新构建后的包体实测
+- [x] 像素占位首批：少量 CC0 像素图 + 缺图回退。不是 Q 版立绘，4MB / 分辨率 / 安全区都没放宽
 
 ## 6. 禁用操作
 - 禁止改动 `settings/v2/packages/project.json` 的设计分辨率。
-- 禁止引入需要外部贴图/字体/音频的资源依赖。（2026-10-02 修订：允许接入 `docs/art-samples` 已生成的 Q 版立绘，但必须压缩后入包，且需有资源缺失时的程序化兜底）
+- 禁止引入没有缺图回退的外部贴图、字体或音频。（2026-10-02：Q 版立绘可以接入，但要压缩，并且缺文件时程序化兜底。2026-11-14：另允许 `docs/像素占位素材-许可.md` 里的 CC0 像素占位，必须经 `Art.ts` 加载，缺文件时继续用 Graphics + Label。不得因此放宽 4MB、720×1280，或可点击区 x ∈ [-290, 290]。）
 - 禁止在 `assets/` 之外放源码。
 - 禁止 `git clean`（多窗口/多 Agent 协作场景）。
 
@@ -72,7 +74,7 @@ assets/scripts/
 | 变现 | **纯 IAA**：激励视频 + 插屏 + Banner。无内购、无充值、无虚拟支付。个体工商户路径也不在本项目加内购 |
 | 广告位 | 配置表里的广告位 ID **仍是空串**（不是已填好的测试 ID）。空 ID、未授权、播放失败都按降级发奖，不打断流程。上线前只换 ID |
 | 登录 | 本地存档 + 隐私同意后 `wx.login` 静默（不弹昵称头像授权）+ `wx.onShareAppMessage` 右上角分享。**无服务端**，分享不设「不分享不能玩」 |
-| 美术 | 程序化绘制为主 + `docs/art-samples` 已生成 Q 版立绘点缀（武将详情 / 招募演出） |
+| 美术 | 程序化绘制为主。Q 版立绘仍是目标，可按原约定点缀武将详情 / 招募演出。立绘到位前，可用已登记的 CC0 像素图做道具、导航和战斗替身。像素图不满足 Q 版立绘规格，缺图必须回到色块和文字 |
 
 ### 7.2 本轮新增系统
 - **新手引导**：首启 5 步（出征 → 布阵 → 开战 → 养成 → 招募），保障前 30 秒零门槛
@@ -83,7 +85,7 @@ assets/scripts/
 1. 隐私：`WxApi` 已封装 `getPrivacySetting` / `requirePrivacyAuthorize` / `openPrivacyContract` / `onNeedPrivacyAuthorization`，并接到启动、广告前、设置页。拒绝后广告降级，游戏继续。**不要**往 `game.json` 写 `__usePrivacyCheck__`（那是小程序 `app.json` 字段）。mp 后台《用户隐私保护指引》仍要等新 AppID 后提交审核。
 2. 设置页已有意见反馈、隐私政策、用户协议。客服邮箱、个体工商户字号、统一社会信用代码、联系地址在 `assets/scripts/data/ContactConf.ts` 留空。空着时界面写「待填写 / 暂无法联系」，禁止编造。
 3. 开始页与设置页已用 Graphics + Label 画 12+ 和出版署《健康游戏忠告》（一字未改）。
-4. 首包仍要在重新构建后实测 ≤ 4MB。本轮已关闭未使用的 Spine、DragonBones、Video、WebView、TiledMap。3D 物理原本就是关的。Audio 保留（要不要做音频还没定）。设计分辨率未改。
+4. 首包仍要在重新构建后实测 ≤ 4MB。本轮已关闭未使用的 Spine、DragonBones、Video、WebView、TiledMap。3D 物理原本就是关的。Audio 保留（要不要做音频还没定）。设计分辨率未改。像素占位只许放 `assets/resources/pixel` 里登记过的小图，源 PNG 控制在 16KB 量级；这不是构建后的主包测量，真机包体仍要重测。
 5. 无诱导分享、无强制分享、无外链跳转。`game.json` 不写 `navigateToMiniProgramAppIdList`、`permission`、`workers`。
 6. 无充值、无内购、无虚拟支付。
 

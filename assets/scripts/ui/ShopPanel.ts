@@ -1,12 +1,14 @@
 /** 商城：银币/将玉货架，限量 + 刷新（无付费入口） */
 import { Node, Color } from 'cc';
 import { nd, box, boxAdd, txt, fullBg } from '../core/Ui';
+import { paintPixel } from '../core/Art';
 import { C, FS, qualityColor, QUALITY_NAME } from '../core/Theme';
 import { Store } from '../core/Store';
 import { Router } from '../core/Router';
 import { Fx } from '../core/Fx';
 import { topBar, resBar, bottomNav, NavKey } from './Common';
 import { ITEM_CONF } from '../data/ItemConf';
+import { artForItem } from '../data/PixelArtConf';
 import { TXT } from '../data/TextConf';
 
 const SLOTS = 6;
@@ -51,12 +53,14 @@ export function buildShopPanel (parent: Node): Node {
             card.setPosition(x, y);
             box(card, 12, C.panel, qualityColor(it.quality), 2);
             boxAdd(card, -80, 8, 160, 54, 8, qualityColor(it.quality));
+            paintPixel(card, artForItem(it), -62, 32, 32, 32, null);
             txt(card, it.name, 17, C.text, 200, 28, 0, 34);
             txt(card, `${s.currency === 'jade' ? TXT.home.jade : TXT.home.silver} ${s.price}`, FS.small, s.currency === 'jade' ? C.q3 : C.gold, 200, 28, 0, -18);
             txt(card, `库存 ${s.stock}/${s.max}`, 15, s.stock > 0 ? C.textSub : C.textWeak, 200, 24, 0, -50);
             if (s.stock <= 0) {
-                boxAdd(card, -80, -60, 160, 130, 12, new Color(0, 0, 0, 150));
-                txt(card, TXT.shop.soldOut, FS.small, C.textWeak, 200, 30, 0, 0);
+                const dim = nd('dim', 210, 130, card);
+                box(dim, 12, new Color(0, 0, 0, 150));
+                txt(dim, TXT.shop.soldOut, FS.small, C.textWeak, 200, 30, 0, 0);
             }
             card.on(Node.EventType.TOUCH_END, () => {
                 if (s.stock <= 0) { Fx.toast(TXT.shop.soldOutTip); return; }
